@@ -813,16 +813,16 @@ for t in ['QQQ','SPY']:
 
     <div class="api-field">
       <label>App ID <span class="field-badge">必填</span></label>
-      <input type="text" id="futuAppId" placeholder="例：app-xxxxxxxxxxxxxxxxxxxxxxxx"
+      <input type="text" id="futuAppId" placeholder="牛牛號 / App ID"
         oninput="this.classList.toggle('has-value', this.value.trim().length > 0); futuTestReset();" />
-      <span class="field-hint">富途開發者平台 → 我的應用 → App ID</span>
+      <span class="field-hint">填入富途牛牛賬號（牛牛號）或開發者 App ID</span>
     </div>
 
     <div class="api-field">
       <label>App Secret <span class="field-badge">必填</span></label>
-      <input type="password" id="futuAppSecret" placeholder="請輸入 App Secret（輸入後以 ● 遮蔽）"
+      <input type="password" id="futuAppSecret" placeholder="富途牛牛登入密碼 / App Secret"
         oninput="this.classList.toggle('has-value', this.value.trim().length > 0); futuTestReset();" />
-      <span class="field-hint">請妥善保管，切勿分享給他人</span>
+      <span class="field-hint">填入富途牛牛登入密碼（或 App Secret），僅存於本地</span>
     </div>
 
     <div class="api-field">
@@ -2686,16 +2686,16 @@ ${anchorHtml}
 
     <div class="api-field">
       <label>App ID <span class="field-badge">必填</span></label>
-      <input type="text" id="futuAppId" placeholder="例：app-xxxxxxxxxxxxxxxxxxxxxxxx"
+      <input type="text" id="futuAppId" placeholder="牛牛號 / App ID"
         oninput="this.classList.toggle('has-value', this.value.trim().length > 0); futuTestReset();" />
-      <span class="field-hint">富途開發者平台 → 我的應用 → App ID</span>
+      <span class="field-hint">填入富途牛牛賬號（牛牛號）或開發者 App ID</span>
     </div>
 
     <div class="api-field">
       <label>App Secret <span class="field-badge">必填</span></label>
-      <input type="password" id="futuAppSecret" placeholder="請輸入 App Secret（輸入後以 ● 遮蔽）"
+      <input type="password" id="futuAppSecret" placeholder="富途牛牛登入密碼 / App Secret"
         oninput="this.classList.toggle('has-value', this.value.trim().length > 0); futuTestReset();" />
-      <span class="field-hint">請妥善保管，切勿分享給他人</span>
+      <span class="field-hint">填入富途牛牛登入密碼（或 App Secret），僅存於本地</span>
     </div>
 
     <div class="api-field">
@@ -3031,23 +3031,23 @@ async function testFutuConnection() {
   // --- 層 1：App ID 格式驗證 ---
   logs.push('[ 1/3 ] App ID 格式驗證...');
   await new Promise(r => setTimeout(r, 300));
-  const appIdOk = /^[a-zA-Z0-9_\-\.]{8,64}$/.test(appId);
+  const appIdOk = appId.length >= 6;
   if (appIdOk) {
     logs.push('        ✓ App ID 格式正確');
     passed++;
   } else {
-    logs.push('        ✗ App ID 格式異常（應為 8-64 位英數字元）');
+    logs.push('        ✗ App ID 過短（請輸入牛牛號或 App ID，至少 6 位）');
   }
 
   // --- 層 2：App Secret 長度驗證 ---
   logs.push('[ 2/3 ] App Secret 強度驗證...');
   await new Promise(r => setTimeout(r, 300));
-  const secretOk = appSecret.length >= 16;
+  const secretOk = appSecret.length >= 6;
   if (secretOk) {
-    logs.push('        ✓ App Secret 長度符合要求（≥16 位）');
+    logs.push('        ✓ 密碼/App Secret 長度符合要求（≥6 位）');
     passed++;
   } else {
-    logs.push('        ✗ App Secret 長度過短（請確認是否完整複製）');
+    logs.push('        ✗ 密碼/App Secret 過短（至少 6 位）');
   }
 
   // --- 層 3：OpenD 連通性（透過 fetch 嘗試連接本機端口，僅在 http 環境有效）---
