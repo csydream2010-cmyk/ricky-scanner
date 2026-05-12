@@ -3059,7 +3059,7 @@ async function testFutuConnection() {
     try {
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), 2500);
-      // Futu OpenD 的 HTTP 端口通常比 API 端口多 1（如 11112）
+      // Futu OpenD 的 HTTP 端口通常比 API 端口多 1（如 11111）
       const httpPort = port + 1;
       await fetch(`http://${host}:${httpPort}/`, { method:'GET', signal: ctrl.signal, mode:'no-cors' });
       clearTimeout(timer);
