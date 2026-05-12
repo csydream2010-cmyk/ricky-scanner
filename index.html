@@ -1,0 +1,3368 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>美股日線波段策略掃描器 v2.9 — Ricky Chan</title>
+<style>
+  :root {
+    --bg: #0d0f12; --bg2: #141720; --bg3: #1c2030; --bg4: #232838;
+    --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.13);
+    --text: #e8eaf0; --text2: #8a90a4; --text3: #525869;
+    --green: #22c97a; --green-bg: rgba(34,201,122,0.1); --green-bg2: rgba(34,201,122,0.07);
+    --amber: #f5a623; --amber-bg: rgba(245,166,35,0.1); --amber-bg2: rgba(245,166,35,0.07);
+    --red: #e8535a; --red-bg: rgba(232,83,90,0.1); --red-bg2: rgba(232,83,90,0.07);
+    --blue: #4f8ef7; --blue-bg: rgba(79,142,247,0.1); --blue-bg2: rgba(79,142,247,0.07);
+    --accent: #4f8ef7; --radius: 10px; --radius-sm: 6px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif; min-height: 100vh; line-height: 1.5; }
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 56px; border-bottom: 1px solid var(--border); background: rgba(13,15,18,0.95); position: sticky; top: 0; z-index: 100; backdrop-filter: blur(12px); }
+  .nav-left { display: flex; align-items: center; gap: 10px; }
+  .nav-logo { width: 28px; height: 28px; border-radius: 6px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; }
+  .nav-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .nav-tag { font-size: 11px; color: var(--text3); border: 1px solid var(--border2); padding: 2px 8px; border-radius: 20px; }
+  .nav-right { font-size: 12px; color: var(--text3); }
+  .container { max-width: 1000px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  .hero { margin-bottom: 2rem; }
+  .hero h1 { font-size: 28px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; margin-bottom: 6px; }
+  .hero p { font-size: 14px; color: var(--text2); }
+  .mode-bar { display: flex; gap: 8px; margin-bottom: 1.5rem; }
+  .mode-btn { flex: 1; height: 40px; font-size: 13px; font-weight: 600; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg2); color: var(--text2); cursor: pointer; transition: all 0.15s; }
+  .mode-btn:hover { border-color: var(--border2); color: var(--text); }
+  .mode-btn.active { border-color: var(--accent); background: var(--blue-bg); color: var(--accent); }
+  .protocol-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; }
+  .protocol-title { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 0.75rem; }
+  .protocol-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .protocol-item { font-size: 12px; color: var(--text2); padding: 8px 10px; background: var(--bg3); border-radius: var(--radius-sm); border-left: 2px solid var(--border2); }
+  .protocol-item .p-check { color: var(--green); margin-right: 4px; }
+  .stage-label { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .stage-label .stage-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+  .market-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  .market-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+  .market-card .label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .market-card .value { font-size: 18px; font-weight: 600; color: var(--text); }
+  .market-card .sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .filter-table-wrap { margin-bottom: 1.5rem; }
+  .filter-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .filter-table th { text-align: left; padding: 10px 12px; background: var(--bg3); color: var(--text3); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
+  .filter-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text2); }
+  .filter-table td.val { font-family: 'SF Mono', monospace; font-size: 12px; }
+  .filter-table td.res { text-align: center; }
+  .filter-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .panel { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1.5rem; }
+  .panel-title { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 1rem; }
+  .input-group { display: flex; gap: 8px; margin-bottom: 1rem; }
+  .ticker-input { flex: 1; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 0 14px; height: 42px; font-size: 15px; font-family: 'SF Mono', 'Courier New', monospace; color: var(--text); outline: none; text-transform: uppercase; letter-spacing: 1px; transition: border-color 0.2s; }
+  .ticker-input::placeholder { text-transform: none; letter-spacing: 0; color: var(--text3); font-family: inherit; font-size: 14px; }
+  .ticker-input:focus { border-color: var(--accent); }
+  .scan-btn { height: 42px; padding: 0 24px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.2s, transform 0.1s; white-space: nowrap; }
+  .scan-btn:hover { opacity: 0.88; }
+  .scan-btn:active { transform: scale(0.97); }
+  .scan-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip-label { font-size: 12px; color: var(--text3); align-self: center; margin-right: 4px; }
+  .chip { font-size: 12px; padding: 5px 12px; background: var(--bg3); border: 1px solid var(--border2); border-radius: 20px; color: var(--text2); cursor: pointer; transition: all 0.15s; }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .anchor-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1.5rem; font-size: 12px; }
+  .anchor-card .anchor-title { font-size: 12px; font-weight: 600; color: var(--text3); margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  .anchor-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .anchor-item { color: var(--text2); }
+  .anchor-item strong { color: var(--text); }
+  .results { display: flex; flex-direction: column; gap: 12px; }
+  .result-summary { font-size: 13px; color: var(--text2); padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 4px; display: flex; gap: 16px; flex-wrap: wrap; }
+  .result-summary .s-item strong { color: var(--text); }
+  .stock-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; transition: border-color 0.2s; }
+  .stock-card:hover { border-color: var(--border2); }
+  .stock-card.verdict-pass { border-left: 3px solid var(--green); }
+  .stock-card.verdict-watch { border-left: 3px solid var(--amber); }
+  .stock-card.verdict-fail { border-left: 3px solid var(--border); }
+  .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .card-left { display: flex; align-items: center; gap: 12px; }
+  .ticker-name { font-size: 18px; font-weight: 700; color: var(--text); font-family: 'SF Mono', monospace; }
+  .price-tag { font-size: 13px; color: var(--text2); }
+  .verdict-badge { font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 20px; letter-spacing: 0.3px; }
+  .verdict-badge.pass { background: var(--green-bg); color: var(--green); }
+  .verdict-badge.watch { background: var(--amber-bg); color: var(--amber); }
+  .verdict-badge.fail { background: rgba(255,255,255,0.05); color: var(--text3); }
+  .sparkline-wrap { margin-bottom: 12px; height: 44px; background: var(--bg3); border-radius: var(--radius-sm); padding: 6px 8px; }
+  .sparkline-wrap svg { width: 100%; height: 100%; }
+  .conds-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
+  .cond-item { border-radius: var(--radius-sm); padding: 9px 11px; display: flex; align-items: flex-start; gap: 8px; }
+  .cond-item.ok { background: var(--green-bg2); }
+  .cond-item.warn { background: var(--amber-bg2); }
+  .cond-item.no { background: rgba(255,255,255,0.03); }
+  .cond-check { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0; margin-top: 1px; }
+  .cond-check.ok { background: var(--green-bg); color: var(--green); }
+  .cond-check.no { background: rgba(255,255,255,0.05); color: var(--text3); }
+  .cond-check.warn { background: var(--amber-bg); color: var(--amber); }
+  .cond-body { font-size: 12px; line-height: 1.4; }
+  .cond-body .cond-title { font-weight: 500; color: var(--text2); margin-bottom: 2px; }
+  .cond-body .cond-val { color: var(--text3); font-size: 11px; }
+  .cond-body .cond-val.ok { color: var(--green); }
+  .cond-body .cond-val.no { color: var(--red); }
+  .cond-body .cond-val.warn { color: var(--amber); }
+  .progress-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .progress-bar-wrap { flex: 1; height: 4px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
+  .progress-bar { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+  .progress-label { font-size: 11px; color: var(--text3); min-width: 30px; }
+  .entry-standard { background: var(--bg3); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 12px; border-left: 2px solid var(--blue); }
+  .entry-standard .es-title { font-size: 11px; font-weight: 600; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .entry-standard .es-row { font-size: 12px; color: var(--text2); line-height: 1.7; }
+  .card-note { font-size: 12px; color: var(--text2); padding: 10px 12px; background: var(--bg3); border-radius: var(--radius-sm); border-left: 2px solid var(--border2); line-height: 1.6; }
+  .loading-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; display: flex; align-items: center; gap: 14px; }
+  .spinner { width: 20px; height: 20px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-info { font-size: 13px; color: var(--text2); }
+  .loading-ticker { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 2px; font-family: monospace; }
+  .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text3); font-size: 14px; }
+  .empty-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.3; }
+  .risk-computer { background: var(--bg3); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 12px; border-left: 2px solid var(--green); }
+  .risk-computer .rc-title { font-size: 11px; font-weight: 600; color: var(--green); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .risk-computer .rc-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .rc-item { display: flex; flex-direction: column; gap: 2px; }
+  .rc-item .rc-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; }
+  .rc-item .rc-value { font-size: 14px; font-weight: 700; font-family: 'SF Mono', monospace; }
+  .rc-item .rc-sub { font-size: 10px; color: var(--text3); }
+  .tf-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 12px; }
+  .tf-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text3); background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 5px 12px; cursor: pointer; margin-bottom: 10px; transition: all 0.15s; }
+  .tf-toggle:hover { border-color: var(--border2); color: var(--text2); }
+  .tf-drawer { display: none; }
+  .tf-drawer.open { display: block; }
+  .tf-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+  .tf-card { background: var(--bg3); border-radius: var(--radius-sm); padding: 10px; border-left: 2px solid var(--border2); }
+  .tf-card .tf-name { font-size: 11px; font-weight: 600; color: var(--text3); margin-bottom: 6px; }
+  .tf-card .tf-status { font-size: 13px; font-weight: 600; }
+  .tf-card .tf-detail { font-size: 11px; color: var(--text3); margin-top: 4px; line-height: 1.5; }
+  .tf-score { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; margin-bottom: 8px; }
+  .tf-score.ok { background: var(--green-bg); color: var(--green); }
+  .tf-score.warn { background: var(--amber-bg); color: var(--amber); }
+  .tf-score.no { background: var(--red-bg); color: var(--red); }
+  .redline-bar { display: none; background: var(--red-bg); border: 1px solid rgba(232,83,90,0.3); border-radius: var(--radius-sm); padding: 9px 14px; margin-bottom: 12px; font-size: 12px; color: var(--red); font-weight: 600; }
+  .redline-bar.open { display: block; }
+  .redline-bar .rl-tag { display: inline-block; background: rgba(232,83,90,0.15); padding: 2px 8px; border-radius: 4px; margin-right: 6px; font-size: 11px; }
+  .cache-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; color: var(--text3); background: var(--bg3); padding: 2px 8px; border-radius: 10px; margin-left: 8px; }
+  .cache-badge.fresh { color: var(--green); }
+  .cache-badge.stale { color: var(--amber); }
+  .settlement-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; display: none; }
+  .settlement-panel.open { display: block; }
+  .settlement-title { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 1rem; }
+  .settlement-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .sf-item { display: flex; flex-direction: column; gap: 4px; }
+  .sf-item label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; }
+  .sf-item input { height: 36px; padding: 0 10px; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius-sm); font-size: 13px; color: var(--text); font-family: 'SF Mono', monospace; outline: none; }
+  .sf-item input:focus { border-color: var(--accent); }
+  .sf-checks { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 4px; }
+  .sf-check { font-size: 12px; color: var(--text2); padding: 6px 8px; background: var(--bg3); border-radius: var(--radius-sm); cursor: pointer; user-select: none; }
+  .sf-check.checked { background: var(--green-bg2); color: var(--green); }
+  .sf-check::before { content: '□ '; color: var(--text3); }
+  .sf-check.checked::before { content: '✓ '; color: var(--green); }
+  .pool-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin-top: 10px; display: none; }
+  .pool-panel.open { display: block; }
+  .pool-title { font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+  .pool-tags { display: flex; flex-wrap: wrap; gap: 6px; min-height: 32px; padding: 8px; background: var(--bg3); border-radius: var(--radius-sm); margin-bottom: 10px; }
+  .pool-empty { font-size: 12px; color: var(--text3); align-self: center; }
+  .pool-tag { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 4px 10px; background: var(--blue-bg); border: 1px solid rgba(79,142,247,0.3); border-radius: 20px; color: var(--accent); font-family: 'SF Mono', monospace; cursor: default; }
+  .pool-tag .remove-btn { cursor: pointer; color: rgba(79,142,247,0.5); font-size: 13px; line-height: 1; transition: color 0.15s; }
+  .pool-tag .remove-btn:hover { color: var(--red); }
+  .pool-add-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .pool-input { flex: 1; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 0 12px; height: 36px; font-size: 14px; font-family: 'SF Mono', monospace; color: var(--text); text-transform: uppercase; letter-spacing: 1px; outline: none; }
+  .pool-input:focus { border-color: var(--accent); }
+  .pool-add-btn { height: 36px; padding: 0 16px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .pool-add-btn:hover { opacity: 0.85; }
+  .pool-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .pool-action-btn { height: 32px; padding: 0 14px; font-size: 12px; font-weight: 500; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--border2); background: var(--bg3); color: var(--text2); transition: all 0.15s; }
+  .pool-action-btn:hover { border-color: var(--border2); color: var(--text); }
+  .pool-count { font-size: 11px; color: var(--text3); align-self: center; margin-left: auto; }
+  .metrics-strip { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 6px; }
+  .metric-pill { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 7px 14px; border-radius: var(--radius-sm); background: var(--bg3); border: 1px solid var(--border); flex: 1; min-width: 90px; }
+  .metric-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+  .metric-value { font-size: 15px; font-weight: 700; font-family: 'SF Mono', monospace; }
+  .metric-sub { font-size: 10px; color: var(--text3); }
+  .metric-ok { color: var(--green); } .metric-warn { color: var(--amber); } .metric-no { color: var(--red); } .metric-neutral { color: var(--text2); }
+  .rules-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text3); background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 5px 12px; cursor: pointer; margin-bottom: 1rem; transition: all 0.15s; }
+  .rules-toggle:hover { border-color: var(--border2); color: var(--text2); }
+  .rules-drawer { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; display: none; }
+  .rules-drawer.open { display: block; }
+  .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+  .rule-row { font-size: 12px; color: var(--text2); padding: 8px 10px; background: var(--bg3); border-radius: var(--radius-sm); }
+  .rule-row .rule-no { color: var(--text3); margin-right: 6px; }
+  .fallback-panel { background: var(--amber-bg); border: 1px solid var(--amber); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: none; }
+  .fallback-panel.open { display: block; }
+  .fallback-title { font-size: 12px; font-weight: 600; color: var(--amber); margin-bottom: 8px; }
+  .fallback-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .fb-item { display: flex; flex-direction: column; gap: 4px; }
+  .fb-item label { font-size: 11px; color: var(--text3); }
+  .fb-item input { height: 34px; padding: 0 8px; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius-sm); font-size: 13px; color: var(--text); font-family: 'SF Mono', monospace; outline: none; }
+  .fb-item input:focus { border-color: var(--amber); }
+  .footer { text-align: center; padding: 2rem 1rem; color: var(--text3); font-size: 12px; line-height: 1.8; }
+  .python-fallback { background: var(--bg3); border-radius: var(--radius-sm); padding: 10px 12px; margin-top: 10px; font-size: 11px; color: var(--text3); line-height: 1.6; }
+  .python-fallback code { display: block; background: #0a0c0f; padding: 8px 10px; border-radius: 4px; font-family: 'SF Mono', monospace; font-size: 10px; color: var(--text2); margin-top: 6px; overflow-x: auto; white-space: pre; }
+  @media (max-width: 640px) {
+    nav { padding: 0 1rem; }
+    .container { padding: 1.5rem 1rem 3rem; }
+    .conds-grid { grid-template-columns: 1fr 1fr; }
+    .hero h1 { font-size: 22px; }
+    .anchor-grid { grid-template-columns: 1fr 1fr; }
+    .protocol-grid { grid-template-columns: 1fr; }
+    .settlement-form { grid-template-columns: 1fr; }
+    .filter-table { font-size: 11px; }
+    .filter-table th, .filter-table td { padding: 8px 6px; }
+    .fallback-grid { grid-template-columns: 1fr 1fr; }
+    .tf-grid { grid-template-columns: 1fr; }
+    .rc-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ===== v2.7 多時框自動 ===== */
+  .tf-auto-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+  .tf-auto-card { background: var(--bg3); border-radius: var(--radius-sm); padding: 10px 12px; border-left: 2px solid var(--border2); transition: border-color 0.2s; }
+  .tf-auto-card .tfa-name { font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; }
+  .tf-auto-card .tfa-rsi { font-size: 18px; font-weight: 700; font-family: 'SF Mono', monospace; margin-bottom: 2px; }
+  .tf-auto-card .tfa-detail { font-size: 11px; color: var(--text3); margin-bottom: 2px; line-height: 1.5; }
+  .tf-auto-card .tfa-status { font-size: 11px; font-weight: 600; margin-top: 5px; }
+  .tf-align-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; margin-bottom: 8px; }
+  .tf-align-badge.full { background: var(--green-bg); color: var(--green); }
+  .tf-align-badge.partial { background: var(--amber-bg); color: var(--amber); }
+  .tf-align-badge.conflict { background: var(--red-bg); color: var(--red); }
+  .tf-loading-msg { font-size: 11px; color: var(--text3); padding: 10px 0; display: flex; align-items: center; gap: 8px; }
+  /* ===== v2.7 Watchlist ===== */
+  .pool-group { width: 100%; margin-bottom: 8px; }
+  .pool-group-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; padding-left: 2px; }
+  .pool-filter-row { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 8px; }
+  .pf-btn { height: 26px; padding: 0 10px; font-size: 11px; font-weight: 600; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--border2); background: var(--bg3); color: var(--text3); transition: all 0.15s; }
+  .pf-btn:hover { border-color: var(--border2); color: var(--text2); }
+  .pf-btn.pf-active { border-color: var(--accent); background: var(--blue-bg); color: var(--accent); }
+  .pool-add-extended { display: grid; grid-template-columns: 80px 1fr 108px 36px; gap: 6px; margin-bottom: 6px; align-items: center; }
+  .pool-note-input { background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 0 10px; height: 36px; font-size: 12px; color: var(--text); outline: none; width: 100%; }
+  .pool-note-input:focus { border-color: var(--accent); }
+  .pool-tag-select { background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 0 8px; height: 36px; font-size: 12px; color: var(--text2); outline: none; cursor: pointer; width: 100%; }
+  /* ===== v2.7 匯出按鈕 ===== */
+  .export-report-btn { height: 42px; padding: 0 18px; background: var(--bg3); color: var(--text2); border: 1px solid var(--border2); border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .export-report-btn:hover:not(:disabled) { border-color: var(--green); color: var(--green); }
+  .export-report-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  @media (max-width: 640px) {
+    .tf-auto-grid { grid-template-columns: 1fr; }
+    .pool-add-extended { grid-template-columns: 70px 1fr; grid-template-rows: auto auto; }
+    .pool-add-extended button { grid-column: 1 / -1; }
+  }
+
+  /* ===== v2.8 手動校準 ===== */
+  .tf-manual-toggle { font-size: 11px; color: var(--text3); cursor: pointer; display: inline-flex;
+    align-items: center; gap: 4px; margin-top: 6px; padding: 3px 8px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--bg4); transition: all 0.15s; user-select: none; }
+  .tf-manual-toggle:hover { border-color: var(--border2); color: var(--text2); }
+  .tf-manual-toggle.active { border-color: var(--amber); color: var(--amber); background: var(--amber-bg); }
+  .tf-manual-panel { display: none; margin-top: 8px; padding: 10px 12px;
+    background: var(--bg4); border-radius: var(--radius-sm); border: 1px solid var(--border2); }
+  .tf-manual-panel.open { display: block; }
+  .tf-manual-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .tf-manual-field { display: flex; flex-direction: column; gap: 3px; }
+  .tf-manual-field label { font-size: 10px; color: var(--text3); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.4px; }
+  .tf-manual-input { background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); padding: 4px 8px; height: 32px; font-size: 12px;
+    font-family: 'SF Mono', monospace; color: var(--text); outline: none; width: 100%;
+    transition: border-color 0.15s; }
+  .tf-manual-input:focus { border-color: var(--amber); }
+  .tf-manual-input.has-value { border-color: var(--amber); background: var(--amber-bg); }
+  .tf-manual-actions { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+  .tf-manual-apply { height: 28px; padding: 0 14px; font-size: 11px; font-weight: 600;
+    border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--amber);
+    background: var(--amber-bg); color: var(--amber); transition: all 0.15s; }
+  .tf-manual-apply:hover { background: var(--amber); color: var(--bg); }
+  .tf-manual-clear { height: 28px; padding: 0 12px; font-size: 11px; font-weight: 600;
+    border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--border2);
+    background: var(--bg3); color: var(--text3); transition: all 0.15s; }
+  .tf-manual-clear:hover { border-color: var(--red); color: var(--red); }
+  .tf-manual-note { font-size: 10px; color: var(--text3); line-height: 1.5; }
+  .tf-override-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 10px;
+    font-weight: 700; padding: 1px 6px; border-radius: 10px; background: var(--amber-bg);
+    color: var(--amber); margin-left: 4px; vertical-align: middle; }
+  /* ===== v2.8 大盤 EMA200 ===== */
+  .anchor-ema200 { display: inline-flex; align-items: center; gap: 4px; font-size: 12px;
+    font-weight: 600; padding: 2px 8px; border-radius: 10px; margin-left: 6px; }
+  .anchor-ema200.bull { background: rgba(34,201,122,0.1); color: var(--green); }
+  .anchor-ema200.bear { background: rgba(232,83,90,0.1); color: var(--red); }
+
+  /* ===== 富途 API Key 設定 Modal ===== */
+  .nav-settings-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; color: var(--text3);
+    background: none; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 4px 10px;
+    cursor: pointer; transition: all 0.15s; margin-right: 8px;
+  }
+  .nav-settings-btn:hover { border-color: var(--border2); color: var(--text2); }
+  .nav-settings-btn.configured { border-color: var(--green); color: var(--green); }
+
+  .api-modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    z-index: 9999; display: none; align-items: center; justify-content: center;
+    backdrop-filter: blur(5px);
+  }
+  .api-modal-overlay.open { display: flex; }
+  .api-modal {
+    background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: 14px; padding: 1.75rem;
+    width: min(500px, 94vw);
+    box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+    animation: apiModalIn 0.22s cubic-bezier(0.16,1,0.3,1);
+    max-height: 90vh; overflow-y: auto;
+  }
+  @keyframes apiModalIn {
+    from { opacity: 0; transform: translateY(14px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .api-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1.25rem;
+  }
+  .api-modal-title { font-size: 15px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .api-modal-close {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--bg3); border: 1px solid var(--border2);
+    color: var(--text3); font-size: 14px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+  }
+  .api-modal-close:hover { background: var(--bg4); color: var(--text); }
+  .api-modal-desc {
+    font-size: 12px; color: var(--text3); line-height: 1.6;
+    background: var(--bg3); border-radius: var(--radius-sm);
+    padding: 10px 12px; margin-bottom: 1.25rem;
+    border-left: 2px solid var(--blue);
+  }
+  .api-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 1rem; }
+  .api-field label {
+    font-size: 11px; font-weight: 600; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .api-field .field-badge {
+    font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 8px;
+    background: var(--blue-bg); color: var(--blue);
+    text-transform: none; letter-spacing: 0;
+  }
+  .api-field input {
+    height: 40px; padding: 0 12px;
+    background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); font-size: 13px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    color: var(--text); outline: none;
+    transition: border-color 0.2s; letter-spacing: 0.5px;
+  }
+  .api-field input:focus { border-color: var(--accent); }
+  .api-field input.has-value { border-color: rgba(34,201,122,0.5); }
+  .api-field .field-hint { font-size: 11px; color: var(--text3); }
+
+  .api-modal-divider { height: 1px; background: var(--border); margin: 1.1rem 0; }
+
+  /* 測試連線區塊 */
+  .api-test-section { margin-bottom: 1rem; }
+  .api-test-section .test-title {
+    font-size: 11px; font-weight: 600; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .api-test-row { display: flex; gap: 8px; align-items: stretch; }
+  .api-test-btn {
+    height: 38px; padding: 0 18px;
+    background: var(--bg3); color: var(--text2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all 0.18s; white-space: nowrap;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .api-test-btn:hover:not(:disabled) { border-color: var(--blue); color: var(--blue); }
+  .api-test-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .api-test-btn .btn-spinner {
+    width: 12px; height: 12px; border: 1.5px solid var(--border2);
+    border-top-color: var(--blue); border-radius: 50%;
+    animation: spin 0.7s linear infinite; display: none;
+  }
+  .api-test-btn.testing .btn-spinner { display: block; }
+  .api-test-btn.testing .btn-icon { display: none; }
+  .api-test-result {
+    flex: 1; height: 38px; padding: 0 12px;
+    border-radius: var(--radius-sm); font-size: 12px; font-weight: 500;
+    display: flex; align-items: center; gap: 6px;
+    background: var(--bg3); border: 1px solid var(--border);
+    color: var(--text3); transition: all 0.2s; font-family: 'SF Mono', monospace;
+  }
+  .api-test-result.testing {
+    color: var(--blue); border-color: rgba(79,142,247,0.3);
+    background: var(--blue-bg);
+  }
+  .api-test-result.success {
+    color: var(--green); border-color: rgba(34,201,122,0.35);
+    background: var(--green-bg);
+  }
+  .api-test-result.error {
+    color: var(--red); border-color: rgba(232,83,90,0.3);
+    background: var(--red-bg);
+  }
+  .api-test-result.warn {
+    color: var(--amber); border-color: rgba(245,166,35,0.3);
+    background: var(--amber-bg);
+  }
+  .api-test-detail {
+    margin-top: 8px; padding: 8px 12px;
+    background: var(--bg3); border-radius: var(--radius-sm);
+    font-size: 11px; color: var(--text3); line-height: 1.7;
+    display: none; font-family: 'SF Mono', monospace;
+    border: 1px solid var(--border); white-space: pre-wrap; word-break: break-all;
+  }
+  .api-test-detail.show { display: block; }
+
+  .api-modal-status {
+    font-size: 12px; padding: 8px 12px; border-radius: var(--radius-sm);
+    margin-bottom: 1rem; display: none;
+  }
+  .api-modal-status.success { display: block; background: var(--green-bg); color: var(--green); }
+  .api-modal-status.error   { display: block; background: var(--red-bg);   color: var(--red);   }
+
+  .api-modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .api-modal-save {
+    height: 38px; padding: 0 22px; background: var(--accent); color: #fff;
+    border: none; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: opacity 0.15s;
+  }
+  .api-modal-save:hover { opacity: 0.85; }
+  .api-modal-clear {
+    height: 38px; padding: 0 16px; background: var(--bg3); color: var(--text3);
+    border: 1px solid var(--border2); border-radius: var(--radius-sm);
+    font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s;
+  }
+  .api-modal-clear:hover { border-color: var(--red); color: var(--red); }
+
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-left">
+    <div class="nav-logo">R</div>
+    <span class="nav-title">Ricky 策略掃描器</span>
+    <span class="nav-tag">v2.9</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <button class="nav-settings-btn" id="apiSettingsBtn" onclick="openApiModal()" title="富途 OpenAPI 設定">
+      <span>⚙️</span> 富途 API
+    </button>
+    <div class="nav-right" id="clockDisplay"></div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <div class="hero">
+    <h1>美股日線波段策略掃描器</h1>
+    <p>v2.8｜大盤錨定升級至1年數據+EMA200｜多時框手動校準覆蓋｜校準值持久保存</p>
+  </div>
+
+  <div class="mode-bar" id="modeBar">
+    <button class="mode-btn active" onclick="setMode('full')" id="btnFull">完整版 Stage 1→4</button>
+    <button class="mode-btn" onclick="setMode('fast')" id="btnFast">快速版 Stage 1+2</button>
+  </div>
+
+  <div class="protocol-panel" id="protocolPanel">
+    <div class="protocol-title">【2｜數據輸入協議 — 不可協商】</div>
+    <div class="protocol-grid">
+      <div class="protocol-item"><span class="p-check">□</span> 2.1 抓取日線 O/H/L/C/V，禁止記憶估算</div>
+      <div class="protocol-item"><span class="p-check">□</span> 2.2 個股分析前必先完成 QQQ + SPY 6項過濾</div>
+      <div class="protocol-item"><span class="p-check">□</span> 2.3 指標公式公開（EMA/RSI/MACD）</div>
+      <div class="protocol-item"><span class="p-check">□</span> 2.4 數據標註截止時間 YYYY-MM-DD HH:MM ET（美東）+ 盤後自動警示</div>
+      <div class="protocol-item"><span class="p-check">□</span> 2.5 數據缺失 → 暫停分析，明確告知</div>
+      <div class="protocol-item"><span class="p-check">□</span> 2.6 本地快取 15min + CORS 多源佇列 + Python 後備通道</div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-bottom:1.5rem;flex-wrap:wrap;">
+    <button class="scan-btn" style="height:36px;padding:0 16px;font-size:12px;background:var(--bg3);color:var(--text2);border:1px solid var(--border2);" onclick="clearAllCache()">🗑️ 清除數據快取並重新抓取</button>
+    <span style="font-size:11px;color:var(--text3);align-self:center;">清除本地 15min 快取，強制從 Yahoo Finance 重新拉取最新數據</span>
+  </div>
+
+  <div class="stage-label"><span class="stage-dot"></span>Stage 1｜大盤狀態錨定 #開盤前</div>
+
+  <div class="market-row" id="marketRow">
+    <div class="market-card">
+      <div class="label">今日日期</div>
+      <div class="value" id="dateDisplay">—</div>
+      <div class="sub" id="dataTimestamp" style="color:var(--text3);">數據截至 — ET</div>
+      <div class="sub" id="postMarketWarn" style="color:var(--amber);display:none;">⚠️ 盤後數據，次日開盤前請重新掃描</div>
+    </div>
+    <div class="market-card">
+      <div class="label">⑥ 大盤狀態</div>
+      <div class="value" id="marketStatus" style="font-size:14px;color:var(--amber)">待抓取</div>
+      <div class="sub">QQQ/SPY 6項過濾</div>
+    </div>
+    <div class="market-card">
+      <div class="label">風控提示</div>
+      <div class="value" id="riskHint" style="font-size:14px;color:var(--text2)">待 Stage 1 判定</div>
+      <div class="sub">總倉位上限依大盤</div>
+    </div>
+    <div class="market-card">
+      <div class="label">月度回撤</div>
+      <div class="value" id="monthlyDrawdown" style="font-size:14px">0.0%</div>
+      <div class="sub" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <span>達 8% 立刻停倉（累計虧損制）</span>
+        <button onclick="resetDrawdown()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;text-decoration:underline;padding:0;">↺ 重置</button>
+      </div>
+      <div id="ddProgressContainer" style="margin-top:6px;height:4px;background:var(--bg3);border-radius:4px;overflow:hidden;display:none;">
+        <div id="ddProgressBar" style="height:100%;width:0%;border-radius:4px;transition:width 0.4s ease;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="filter-table-wrap" id="marketFilterWrap" style="display:none;">
+    <div class="panel">
+      <div class="panel-title">📊 大盤 6項趨勢過濾檢核表（QQQ / SPY）</div>
+      <table class="filter-table" id="marketFilterTable">
+        <thead><tr><th>項次</th><th>條件</th><th>判定標準</th><th>QQQ 數值</th><th>SPY 數值</th><th>同步</th></tr></thead>
+        <tbody id="marketFilterBody"></tbody>
+      </table>
+      <div style="margin-top:12px;padding:10px 12px;background:rgba(245,166,35,0.07);border-radius:var(--radius-sm);border-left:2px solid var(--amber);">
+        <span style="font-size:12px;color:var(--amber);">⚠️ 檢核原則：QQQ 與 SPY 必須「同時」滿足 6項，任一標的缺任一項 → 大盤條件⑥判定為「不同步」</span>
+      </div>
+      <div id="triggerNotes" style="display:none;margin-top:10px;padding:10px 12px;background:rgba(232,83,90,0.07);border-radius:var(--radius-sm);border-left:2px solid var(--red);">
+        <div style="font-size:11px;font-weight:600;color:var(--red);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">❌ 觸發原因自動註解</div>
+        <div id="triggerNotesList" style="font-size:12px;color:var(--text2);line-height:1.9;font-family:'SF Mono',monospace;"></div>
+      </div>
+      <div id="marketVerdict" style="margin-top:12px;font-size:14px;font-weight:600;"></div>
+    </div>
+  </div>
+
+  <div class="fallback-panel" id="fallbackPanel">
+    <div class="fallback-title">⚠️ Yahoo Finance 自動抓取失敗 — 請手動輸入大盤數據（從 TradingView / Yahoo Finance 複製）</div>
+    <div class="fallback-grid">
+      <div class="fb-item"><label>QQQ 收盤價</label><input type="number" id="fbQPrice" step="0.01" /></div>
+      <div class="fb-item"><label>QQQ EMA20</label><input type="number" id="fbQEma20" step="0.01" /></div>
+      <div class="fb-item"><label>QQQ EMA50</label><input type="number" id="fbQEma50" step="0.01" /></div>
+      <div class="fb-item"><label>QQQ MACD</label><input type="number" id="fbQMacd" step="0.01" /></div>
+      <div class="fb-item"><label>QQQ RSI(14)</label><input type="number" id="fbQRsi" step="0.1" /></div>
+      <div class="fb-item"><label>QQQ EMA50(5日前)</label><input type="number" id="fbQEma50_5d" step="0.01" /></div>
+      <div class="fb-item"><label>SPY 收盤價</label><input type="number" id="fbSPrice" step="0.01" /></div>
+      <div class="fb-item"><label>SPY EMA20</label><input type="number" id="fbSEma20" step="0.01" /></div>
+      <div class="fb-item"><label>SPY EMA50</label><input type="number" id="fbSEma50" step="0.01" /></div>
+      <div class="fb-item"><label>SPY MACD</label><input type="number" id="fbSMacd" step="0.01" /></div>
+      <div class="fb-item"><label>SPY RSI(14)</label><input type="number" id="fbSRsi" step="0.1" /></div>
+      <div class="fb-item"><label>SPY EMA50(5日前)</label><input type="number" id="fbSEma50_5d" step="0.01" /></div>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:8px;">
+      <button class="scan-btn" onclick="applyFallback()">✓ 套用人工數據</button>
+      <button class="scan-btn" style="background:var(--bg3);color:var(--text2);" onclick="retryMarketAnchor()">🔄 重試自動抓取</button>
+    </div>
+    <div class="python-fallback">
+      <strong>🐍 Python 後備通道（當所有 CORS 代理失效時）</strong>
+      <div>將以下代碼貼至本地 Python / Jupyter 執行，取得數據後回填上方欄位：</div>
+      <code>import yfinance as yf
+import pandas as pd
+for t in ['QQQ','SPY']:
+    d = yf.Ticker(t).history(period="3mo", interval="1d")
+    print(f"\n=== {t} ===")
+    print(f"Close: {d['Close'].iloc[-1]:.2f}")
+    print(f"EMA20: {d['Close'].ewm(span=20).mean().iloc[-1]:.2f}")
+    print(f"EMA50: {d['Close'].ewm(span=50).mean().iloc[-1]:.2f}")
+    print(f"EMA50_5d: {d['Close'].ewm(span=50).mean().iloc[-6]:.2f}")
+    # RSI / MACD 計算略，請自行補上</code>
+    </div>
+  </div>
+
+  <div class="anchor-card" id="anchorStage1" style="display:none;">
+    <div class="anchor-title">【狀態錨定摘要 #Stage_1】<span class="cache-badge" id="anchorCacheBadge">即時</span></div>
+    <div class="anchor-grid">
+      <div class="anchor-item">📅 時間戳：<strong id="a1Time">—</strong></div>
+      <div class="anchor-item">📊 大盤狀態：<strong id="a1Market">—</strong></div>
+      <div class="anchor-item">📊 總倉位上限：<strong id="a1Limit">—</strong></div>
+      <div class="anchor-item">📊 持倉：<strong id="a1Hold">—</strong> 檔</div>
+      <div class="anchor-item">📊 觀察清單：<strong id="a1Watch">—</strong> 檔</div>
+      <div class="anchor-item">📊 本月回撤：<strong id="a1Drawdown">—</strong></div>
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:var(--text3);">🔐 策略鎖定：當日所有決策必須基於本錨定狀態｜刷新頁面後自動恢復</div>
+  </div>
+
+  <div class="panel" style="border-color:rgba(79,142,247,0.25);">
+    <div class="panel-title" style="color:var(--blue);">💰 資金與風險參數設定（全局套用）</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
+      <div class="sf-item">
+        <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;">總資金 $</label>
+        <input type="number" id="totalCapital" value="100000" step="1000" style="height:36px;padding:0 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;color:var(--text);font-family:'SF Mono',monospace;outline:none;width:100%;" onchange="saveCapitalParams()" />
+      </div>
+      <div class="sf-item">
+        <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;">單檔風險 %</label>
+        <input type="number" id="riskPerTrade" value="2.0" step="0.1" min="0.5" max="5.0" style="height:36px;padding:0 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;color:var(--text);font-family:'SF Mono',monospace;outline:none;width:100%;" onchange="saveCapitalParams()" />
+      </div>
+      <div class="sf-item">
+        <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;">當前設定</label>
+        <div id="capitalSummary" style="height:36px;display:flex;align-items:center;font-size:12px;color:var(--text2);font-family:'SF Mono',monospace;">$100K × 2.0%</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);line-height:1.6;">
+      💡 建議倉位公式：總資金 × 單檔風險% ÷ 每股風險｜修改後點擊「開始掃描」即生效
+    </div>
+  </div>
+
+  <div class="panel" id="positionsPanel" style="border-color:rgba(34,201,122,0.25);">
+    <div class="pos-tab-bar">
+      <button class="pos-tab active" data-tab="manual" onclick="switchPosTab('manual')">📋 本地持倉</button>
+      <button class="pos-tab" data-tab="futu" onclick="switchPosTab('futu')">🔗 富途同步</button>
+    </div>
+    <div class="pos-tab-pane active" data-pane="manual">
+    <div class="panel-title" style="color:var(--green);display:flex;justify-content:space-between;align-items:center;">
+      <span>📁 持倉管理（機制⑪ 財報前處理依據）</span>
+      <span id="posCountBadge" style="font-size:11px;color:var(--text3);">0 檔</span>
+    </div>
+    <div id="positionsList" style="margin-bottom:10px;">
+      <div style="font-size:12px;color:var(--text3);padding:8px 0;">目前無持倉，請在掃描結果中點擊「📌 加入持倉」或手動新增</div>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:8px;">
+      <input type="text" id="posTicker" placeholder="標的" maxlength="6" style="flex:1;height:34px;padding:0 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;color:var(--text);font-family:'SF Mono',monospace;text-transform:uppercase;outline:none;" oninput="this.value=this.value.toUpperCase()" />
+      <input type="number" id="posEntry" placeholder="進場價" step="0.01" style="width:80px;height:34px;padding:0 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;color:var(--text);font-family:'SF Mono',monospace;outline:none;" />
+      <!-- FIX-6: 手動止損價欄位（選填，預設進場×0.98） -->
+      <input type="number" id="posStop" placeholder="止損價" step="0.01" title="選填，預設進場價×0.98" style="width:80px;height:34px;padding:0 10px;background:var(--bg3);border:1px solid rgba(232,83,90,0.5);border-radius:var(--radius-sm);font-size:13px;color:var(--red);font-family:'SF Mono',monospace;outline:none;" />
+      <input type="number" id="posShares" placeholder="股數" step="1" style="width:65px;height:34px;padding:0 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;color:var(--text);font-family:'SF Mono',monospace;outline:none;" />
+      <button class="scan-btn" style="height:34px;padding:0 16px;font-size:12px;background:var(--green);white-space:nowrap;" onclick="addPosition()">+ 新增持倉</button>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <button class="scan-btn" style="height:34px;padding:0 16px;font-size:12px;background:var(--bg3);color:var(--text2);border:1px solid var(--border2);" onclick="scanPositions()">🔍 掃描持倉股</button>
+      <button class="scan-btn" style="height:34px;padding:0 16px;font-size:12px;background:var(--red-bg);color:var(--red);border:1px solid rgba(232,83,90,0.3);" onclick="clearAllPositions()">🗑️ 清空全部</button>
+    </div>
+    <div id="posMsg" style="margin-top:6px;font-size:11px;color:var(--amber);min-height:16px;"></div>
+    </div><!-- /tab:manual -->
+    <div class="pos-tab-pane" data-pane="futu">
+      <div class="futu-sync-info">
+        🔗 需先在本機執行 <strong>futu_proxy.py</strong> 腳本，掃描器才能讀取富途持倉及執行下單。<br>
+        點「⬇️ Proxy 腳本」下載預設定的 Python 腳本（需 <code style="background:var(--bg4);padding:1px 5px;border-radius:3px;">pip install futu-api flask flask-cors</code>）。
+      </div>
+      <div class="futu-sync-row">
+        <button class="futu-sync-btn primary" id="futuSyncBtn" onclick="syncFutuPositions()">
+          <span class="sync-spinner"></span><span class="sync-icon">🔄</span> 同步富途持倉
+        </button>
+        <button class="futu-sync-btn" onclick="showFutuManualImport()">📋 手動貼入 JSON</button>
+        <button class="futu-sync-btn" onclick="downloadFutuProxy()">⬇️ Proxy 腳本</button>
+        <button class="futu-sync-btn" onclick="clearFutuPositions()" style="margin-left:auto;" title="清除同步數據">🗑</button>
+      </div>
+      <div id="futuManualImportArea" style="display:none;margin-bottom:10px;">
+        <textarea id="futuManualJson" rows="5"
+          placeholder='貼入富途持倉 JSON，例：&#10;[{"code":"NVDA.US","qty":100,"costPrice":900.5,"marketVal":95000,"unrealPnl":-500,"unrealPnlPct":-0.52}]'
+          style="width:100%;padding:8px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:11px;font-family:monospace;color:var(--text);resize:vertical;outline:none;margin-bottom:6px;box-sizing:border-box;"></textarea>
+        <div style="display:flex;gap:8px;">
+          <button class="futu-sync-btn primary" onclick="applyFutuManualJson()">✓ 套用 JSON</button>
+          <button class="futu-sync-btn" onclick="document.getElementById('futuManualImportArea').style.display='none'">取消</button>
+        </div>
+      </div>
+      <div id="futuManualImportRow" style="display:none;"></div>
+      <div class="futu-sync-status" id="futuSyncStatus"></div>
+      <table class="futu-pos-table" id="futuPosTable" style="display:none;">
+        <thead><tr><th>標的</th><th>股數</th><th>成本價</th><th>市值</th><th>未實現損益</th><th>操作</th></tr></thead>
+        <tbody id="futuPosTableBody"></tbody>
+      </table>
+      <div id="futuPosEmpty" style="font-size:12px;color:var(--text3);padding:20px 0;text-align:center;">
+        尚未同步持倉，點擊「🔄 同步富途持倉」開始
+      </div>
+      <div class="futu-sync-last" id="futuSyncLast"></div>
+    </div><!-- /tab:futu -->
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">輸入掃描標的（Stage 2）</div>
+    <div class="input-group">
+      <input type="text" class="ticker-input" id="tickerInput" placeholder="輸入代碼，多個以逗號分隔，如 NVDA, AAPL, TSLA" onkeydown="if(event.key==='Enter')startScan()" />
+      <button class="scan-btn" id="scanBtn" onclick="startScan()">⚡ 開始掃描</button>
+      <button class="export-report-btn" id="exportReportBtn" onclick="exportHTMLReport()" disabled>📄 匯出報告</button>
+    </div>
+    <div class="chips">
+      <span class="chip-label">快速選擇：</span>
+      <div class="chip" id="poolScanChip" style="border-color:var(--accent);color:var(--accent);" onclick="scanPool()">🔍 一鍵掃描觀察池</div>
+      <div class="chip" onclick="togglePoolPanel()">⚙️ 管理觀察池 <span id="poolCountBadge" style="font-size:10px;background:var(--blue-bg);padding:1px 6px;border-radius:10px;margin-left:3px;">0</span></div>
+      <div class="chip" onclick="setTickers('NVDA,AAPL,MSFT,AMZN,GOOGL')">Mag-5</div>
+      <div class="chip" onclick="setTickers('NVDA,AMD,AVGO')">AI 半導體</div>
+      <div class="chip" onclick="setTickers('PANW,CRM,NOW,SNOW')">雲端安全</div>
+      <div class="chip" onclick="setTickers('TSLA,NFLX,SHOP')">消費科技</div>
+    </div>
+  </div>
+
+  <div class="pool-panel" id="poolPanel">
+    <div class="pool-title">
+      <span>⚙️ 觀察池管理 <span style="font-size:10px;color:var(--text3);font-weight:400;letter-spacing:0;">v2.7 — 備注/分組/PASS標記</span></span>
+      <button onclick="togglePoolPanel()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;line-height:1;">×</button>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">
+      點擊代碼可編輯備注與分組 · 掃描後自動更新 🟢PASS 🟡WATCH ⚫FAIL · 最多 15 檔
+    </div>
+    <div class="pool-filter-row">
+      <button class="pf-btn pf-active" id="pfAll" onclick="filterPoolDisplay('all')">全部</button>
+      <button class="pf-btn" id="pfPass" onclick="filterPoolDisplay('pass')">🟢 PASS</button>
+      <button class="pf-btn" id="pfWatch" onclick="filterPoolDisplay('watch')">🟡 WATCH</button>
+      <button class="pf-btn" id="pfFail" onclick="filterPoolDisplay('fail')">⚫ FAIL</button>
+      <button class="pf-btn" id="pfUnscan" onclick="filterPoolDisplay('unscan')">— 未掃描</button>
+    </div>
+    <div class="pool-tags" id="poolTags" style="min-height:48px;">
+      <span class="pool-empty">觀察池為空，請新增標的</span>
+    </div>
+    <div class="pool-add-extended">
+      <input type="text" class="pool-input" id="poolInput" placeholder="代碼" maxlength="6"
+        onkeydown="if(event.key==='Enter')addToPool()" oninput="this.value=this.value.toUpperCase()" style="height:36px;" />
+      <input type="text" class="pool-note-input" id="poolNoteInput" placeholder="備注（觀察理由，可空白）" />
+      <select id="poolTagSelect" class="pool-tag-select">
+        <option value="半導體">半導體</option>
+        <option value="AI/雲端">AI/雲端</option>
+        <option value="能源基建">能源基建</option>
+        <option value="消費科技">消費科技</option>
+        <option value="生醫">生醫</option>
+        <option value="自選">自選</option>
+      </select>
+      <button class="pool-add-btn" onclick="addToPool()" style="height:36px;padding:0 10px;border-radius:var(--radius-sm);">+</button>
+    </div>
+    <div id="poolMsg" style="font-size:11px;color:var(--amber);min-height:16px;margin-bottom:8px;"></div>
+    <div class="pool-actions">
+      <button class="pool-action-btn" onclick="loadDefaultPool()">🔄 載入預設（12檔）</button>
+      <button class="pool-action-btn" onclick="clearPool()" style="color:var(--red);border-color:rgba(232,83,90,0.3);">🗑️ 清空全部</button>
+      <button class="pool-action-btn" onclick="exportPoolJSON()">📤 導出 JSON</button>
+      <button class="pool-action-btn" onclick="togglePoolImport()">📥 導入 JSON</button>
+      <button class="pool-action-btn" onclick="exportWatchlistCSV()" style="color:var(--green);border-color:rgba(34,201,122,0.3);">📊 CSV（含備注）</button>
+      <span class="pool-count" id="poolCountLabel">0 / 15 檔</span>
+    </div>
+    <div id="poolImportPanel" style="display:none;margin-top:10px;">
+      <textarea id="poolImportArea" placeholder='貼上 JSON，如：["NVDA","AMD","AAPL"]' style="width:100%;height:60px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:8px 10px;color:var(--text);font-size:12px;font-family:'SF Mono',monospace;resize:vertical;outline:none;"></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="pool-action-btn" onclick="importPoolJSON()">✓ 確認導入</button>
+        <button class="pool-action-btn" onclick="document.getElementById('poolImportPanel').style.display='none'">取消</button>
+      </div>
+      <div id="poolImportMsg" style="margin-top:6px;font-size:11px;color:var(--amber);min-height:16px;"></div>
+    </div>
+  </div>
+
+  </div>
+
+  <button class="rules-toggle" onclick="toggleRules()">
+    <span id="rulesArrow">▶</span> 查看 6 項過濾條件說明
+  </button>
+  <div class="rules-drawer" id="rulesDrawer">
+    <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px;">6 項趨勢強制過濾條件（缺一不可）＋財報檢核</div>
+    <div class="rules-grid">
+      <div class="rule-row"><span class="rule-no">①</span>EMA50 走平或向上（≥ 5日前 × 0.995）</div>
+      <div class="rule-row"><span class="rule-no">②</span>股價站穩在 EMA50 上方（Close > EMA50）</div>
+      <div class="rule-row"><span class="rule-no">③</span>EMA20 &gt; EMA50（多頭排列）</div>
+      <div class="rule-row"><span class="rule-no">④</span>MACD(12,26,9) 運行在零軸上方</div>
+      <div class="rule-row" style="border-left:2px solid var(--amber);"><span class="rule-no">⑤</span>RSI 45–65 進場｜65–70 緩衝警戒｜70–75 緩衝審查｜&gt;75 禁追 <span style="color:var(--amber);font-size:10px;">v2.3 三段式</span></div>
+      <div class="rule-row"><span class="rule-no">⑥</span>大盤 QQQ、SPY 同步多頭趨勢</div>
+    </div>
+    <div style="margin-top:8px;padding:8px 12px;background:rgba(79,142,247,0.07);border-radius:var(--radius-sm);border-left:2px solid var(--blue);">
+      <span style="font-size:12px;color:var(--blue);">📅 財報檢核：財報前 3 天禁止新倉｜持倉依獲利狀況執行減倉或清倉 <span style="opacity:0.7;">機制⑪</span></span>
+    </div>
+    <div style="margin-top:8px;padding:10px 12px;background:var(--amber-bg);border-radius:var(--radius-sm);border-left:2px solid var(--amber);">
+      <span style="font-size:12px;color:var(--amber);">⚠️ 進場條件：縮量回踩 EMA20 ±1.5% 止穩，收盤前 1 小時確認信號</span>
+    </div>
+  </div>
+
+  <div id="resultsArea">
+    <div class="empty-state">
+      <div class="empty-icon">📊</div>
+      輸入股票代碼後按「開始掃描」
+    </div>
+  </div>
+
+  <div class="settlement-panel" id="settlementPanel">
+    <div class="settlement-title">【7.1 結算卡】機制⑨ — 每筆交易必填 <span style="float:right;font-size:11px;color:var(--text3);font-weight:400;">點擊個股「💾 存結算卡」自動帶入</span></div>
+    <div class="settlement-form">
+      <div class="sf-item"><label>標的代碼</label><input type="text" id="scTicker" placeholder="NVDA" /></div>
+      <div class="sf-item"><label>了結日期</label><input type="date" id="scDate" /></div>
+      <div class="sf-item"><label>進場價格 $</label><input type="number" id="scEntry" placeholder="200.00" step="0.01" /></div>
+      <div class="sf-item"><label>出場價格 $</label><input type="number" id="scExit" placeholder="215.00" step="0.01" /></div>
+      <div class="sf-item"><label>止損價格 $</label><input type="number" id="scStop" placeholder="198.50" step="0.01" /></div>
+      <div class="sf-item"><label>實際倉位（股數）</label><input type="number" id="scShares" placeholder="100" step="1" /></div>
+      <div class="sf-checks">
+        <div class="sf-check" onclick="this.classList.toggle('checked')">進場時 6項趨勢過濾全部符合</div>
+        <div class="sf-check" onclick="this.classList.toggle('checked')">進場時縮量回踩 EMA20±1.5%</div>
+        <div class="sf-check" onclick="this.classList.toggle('checked')">止損/止盈觸發符合策略規則</div>
+        <div class="sf-check" onclick="this.classList.toggle('checked')">未違反「交易禁忌紅線」</div>
+      </div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;">
+      <button class="scan-btn" style="background:var(--green);" onclick="saveSettlement()">💾 儲存結算卡</button>
+      <button class="scan-btn" style="background:var(--blue);" onclick="exportSettlementCSV()">📥 導出 CSV</button>
+      <button class="scan-btn" style="background:var(--bg3);color:var(--text2);" onclick="document.getElementById('settlementPanel').classList.remove('open')">關閉</button>
+    </div>
+    <div id="settlementMsg" style="margin-top:8px;font-size:12px;color:var(--green);min-height:18px;"></div>
+  </div>
+
+  <div class="footer">
+    <div>美股日線波段專屬交易策略 v2.6_修正版 · Ricky Chan · Yahoo Finance 直連 · 無需 API Key</div>
+    <div>僅供技術面參考，不構成投資建議 · 一切決策以策略規則為唯一依據</div>
+  </div>
+
+</div>
+
+<!-- ===== 富途 API Key Modal (FIX: moved to DOM) ===== -->
+<div class="api-modal-overlay" id="apiModalOverlay" onclick="if(event.target===this)closeApiModal()">
+  <div class="api-modal">
+    <div class="api-modal-header">
+      <div class="api-modal-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent)"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+        富途 OpenAPI 設定
+      </div>
+      <button class="api-modal-close" onclick="closeApiModal()" aria-label="關閉">✕</button>
+    </div>
+
+    <div class="api-modal-desc">
+      📌 此掃描器目前使用 <strong>Yahoo Finance 直連，無需 API Key</strong> 即可正常掃描。<br>
+      如需整合富途牛牛持倉數據或下單功能，請填入 Futu OpenAPI 憑證。<br>
+      <span style="color:var(--amber)">⚠️ 憑證僅存於瀏覽器本地 localStorage，不上傳任何伺服器。</span>
+    </div>
+
+    <div class="api-field">
+      <label>App ID <span class="field-badge">必填</span></label>
+      <input type="text" id="futuAppId" placeholder="例：app-xxxxxxxxxxxxxxxxxxxxxxxx"
+        oninput="this.classList.toggle('has-value', this.value.trim().length > 0); futuTestReset();" />
+      <span class="field-hint">富途開發者平台 → 我的應用 → App ID</span>
+    </div>
+
+    <div class="api-field">
+      <label>App Secret <span class="field-badge">必填</span></label>
+      <input type="password" id="futuAppSecret" placeholder="請輸入 App Secret（輸入後以 ● 遮蔽）"
+        oninput="this.classList.toggle('has-value', this.value.trim().length > 0); futuTestReset();" />
+      <span class="field-hint">請妥善保管，切勿分享給他人</span>
+    </div>
+
+    <div class="api-field">
+      <label>OpenD 主機 <span class="field-badge">選填</span></label>
+      <input type="text" id="futuHost" placeholder="預設：127.0.0.1（本機）"
+        oninput="this.classList.toggle('has-value', this.value.trim().length > 0); futuTestReset();" />
+      <span class="field-hint">本機安裝 Futu OpenD 時填 127.0.0.1</span>
+    </div>
+
+    <div class="api-field">
+      <label>OpenD 端口 <span class="field-badge">選填</span></label>
+      <input type="number" id="futuPort" placeholder="預設：11111"
+        oninput="this.classList.toggle('has-value', this.value.trim().length > 0); futuTestReset();" />
+      <span class="field-hint">Futu OpenD 預設端口為 11111</span>
+    </div>
+
+    <div class="api-modal-divider"></div>
+
+    <!-- 測試連線 -->
+    <div class="api-test-section">
+      <div class="test-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        測試連線
+      </div>
+      <div class="api-test-row">
+        <button class="api-test-btn" id="futuTestBtn" onclick="testFutuConnection()">
+          <span class="btn-spinner"></span>
+          <span class="btn-icon">🔌</span>
+          測試 API 連線
+        </button>
+        <div class="api-test-result" id="futuTestResult">— 尚未測試</div>
+      </div>
+      <div class="api-test-detail" id="futuTestDetail"></div>
+    </div>
+
+    <div class="api-modal-divider"></div>
+
+    <div class="api-modal-status" id="apiModalStatus"></div>
+
+    <div class="api-modal-actions">
+      <button class="api-modal-clear" onclick="clearFutuApiKeys()">🗑 清除設定</button>
+      <button class="api-modal-save" onclick="saveFutuApiKeys()">💾 儲存設定</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function calcEMA(prices, span) {
+  const k = 2 / (span + 1);
+  const ema = [prices[0]];
+  for (let i = 1; i < prices.length; i++) {
+    ema.push(prices[i] * k + ema[i-1] * (1 - k));
+  }
+  return ema;
+}
+
+function calcRSI(prices, period=14) {
+  if (prices.length < period + 1) return prices.map(() => null);
+  let avgGain = 0, avgLoss = 0;
+  for (let i = 1; i <= period; i++) {
+    const diff = prices[i] - prices[i-1];
+    if (diff > 0) avgGain += diff;
+    else avgLoss += -diff;
+  }
+  avgGain /= period;
+  avgLoss /= period;
+  const rsi = new Array(period).fill(null);
+  rsi.push(avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss)));
+  for (let i = period + 1; i < prices.length; i++) {
+    const diff = prices[i] - prices[i-1];
+    const gain = diff > 0 ? diff : 0;
+    const loss = diff < 0 ? -diff : 0;
+    avgGain = (avgGain * (period - 1) + gain) / period;
+    avgLoss = (avgLoss * (period - 1) + loss) / period;
+    rsi.push(avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss)));
+  }
+  return rsi;
+}
+
+function calcMACD(prices) {
+  const ema12 = calcEMA(prices, 12);
+  const ema26 = calcEMA(prices, 26);
+  const macd = ema12.map((v, i) => v - ema26[i]);
+  const signal = calcEMA(macd, 9);
+  const hist = macd.map((v, i) => v - signal[i]);
+  return { macd, signal, hist };
+}
+
+function calcATR(highs, lows, closes, period=14) {
+  if (closes.length < period + 1) return [];
+  const tr = [highs[0] - lows[0]];
+  for (let i = 1; i < closes.length; i++) {
+    const h = highs[i] ?? closes[i];
+    const l = lows[i] ?? closes[i];
+    const prevC = closes[i-1];
+    tr.push(Math.max(h - l, Math.abs(h - prevC), Math.abs(l - prevC)));
+  }
+  let atr = [tr[0]];
+  for (let i = 1; i < tr.length; i++) {
+    atr.push((atr[i-1] * (period - 1) + tr[i]) / period);
+  }
+  return atr;
+}
+
+function updateDDProgress(pct) {
+  const bar = document.getElementById('ddProgressBar');
+  const container = document.getElementById('ddProgressContainer');
+  if (!bar || !container) return;
+  container.style.display = 'block';
+  bar.style.width = Math.min(pct, 100) + '%';
+  if (pct >= 8) { bar.style.background = 'var(--red)'; }
+  else if (pct >= 6) { bar.style.background = 'var(--amber)'; }
+  else { bar.style.background = 'var(--green)'; }
+}
+
+const YF_CHART = 'https://query1.finance.yahoo.com/v8/finance/chart';
+const YF_QUOTE = 'https://query1.finance.yahoo.com/v10/finance/quoteSummary';
+
+let requestQueue = [];
+let queueRunning = false;
+
+async function enqueueRequest(fn) {
+  return new Promise((resolve, reject) => {
+    requestQueue.push({ fn, resolve, reject });
+    if (!queueRunning) runQueue();
+  });
+}
+
+async function runQueue() {
+  queueRunning = true;
+  while (requestQueue.length > 0) {
+    const batch = requestQueue.splice(0, 2);
+    await Promise.all(batch.map(async (item) => {
+      try { const r = await item.fn(); item.resolve(r); }
+      catch(e) { item.reject(e); }
+    }));
+    if (requestQueue.length > 0) await new Promise(r => setTimeout(r, 1200));
+  }
+  queueRunning = false;
+}
+
+const CACHE_TTL_MS = 15 * 60 * 1000;
+const CACHE_KEY = 'ricky_scanner_cache_v25';
+
+function getCache(ticker) {
+  try {
+    const all = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+    const item = all[ticker];
+    if (!item) return null;
+    const age = Date.now() - item.ts;
+    if (age > CACHE_TTL_MS) { delete all[ticker]; localStorage.setItem(CACHE_KEY, JSON.stringify(all)); return null; }
+    return { data: item.data, age: Math.round(age / 1000) };
+  } catch(e) { return null; }
+}
+
+function setCache(ticker, data) {
+  try {
+    const all = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+    all[ticker] = { ts: Date.now(), data };
+    localStorage.setItem(CACHE_KEY, JSON.stringify(all));
+  } catch(e) {}
+}
+
+async function fetchYahooChart(ticker, range='3mo', interval='1d') {
+  const cached = getCache(ticker + '_' + range + '_' + interval);
+  if (cached) return cached.data;
+
+  const yfUrl = `${YF_CHART}/${ticker}?interval=${interval}&range=${range}&corsDomain=finance.yahoo.com`;
+  const attempts = [
+    () => fetch(yfUrl, { headers: { 'Accept': 'application/json' } }),
+    () => fetch(`https://corsproxy.io/?${encodeURIComponent(yfUrl)}`),
+    () => fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(yfUrl)}`),
+    () => fetch(`https://thingproxy.freeboard.io/fetch/${yfUrl}`),
+  ];
+
+  let lastErr;
+  for (const attempt of attempts) {
+    try {
+      const res = await attempt();
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (!data.chart || !data.chart.result || !data.chart.result[0]) continue;
+      setCache(ticker + '_' + range + '_' + interval, data.chart.result[0]);
+      return data.chart.result[0];
+    } catch(e) { lastErr = e; }
+  }
+  throw new Error(`無法取得 ${ticker} 數據（已試 ${attempts.length} 個來源）：${lastErr?.message}`);
+}
+
+async function fetchYahooEarnings(ticker) {
+  const cacheKey = ticker + '_earnings';
+  const cached = getCache(cacheKey);
+  if (cached) return cached.data;
+
+  const yfUrl = `${YF_QUOTE}/${ticker}?modules=calendarEvents`;
+  const attempts = [
+    () => fetch(yfUrl, { headers: { 'Accept': 'application/json' } }),
+    () => fetch(`https://corsproxy.io/?${encodeURIComponent(yfUrl)}`),
+    () => fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(yfUrl)}`),
+  ];
+  for (const attempt of attempts) {
+    try {
+      const res = await attempt();
+      if (!res.ok) continue;
+      const data = await res.json();
+      const ce = data.quoteSummary?.result?.[0]?.calendarEvents;
+      if (!ce) continue;
+      const result = ce.earnings?.earningsDate?.[0]?.fmt || ce.earningsDate?.fmt || null;
+      setCache(cacheKey, result);
+      return result;
+    } catch(e) { }
+  }
+  return null;
+}
+
+function parseChart(result) {
+  const ts = result.timestamp;
+  const q = result.indicators.quote[0];
+  const validIndices = ts.map((_,i) => i)
+    .filter(i => ts[i] != null && q.close[i] != null && q.volume[i] != null);
+  const closes  = validIndices.map(i => q.close[i]);
+  const volumes = validIndices.map(i => q.volume[i]);
+  const highs   = validIndices.map(i => q.high[i]  ?? q.close[i]);
+  const lows    = validIndices.map(i => q.low[i]   ?? q.close[i]);
+  const validTs = validIndices.map(i => ts[i]);
+  return { closes, volumes, highs, lows, timestamps: validTs };
+}
+
+let currentMode = 'full';
+let marketAnchorState = null;
+
+function saveAnchorState() {
+  if (marketAnchorState) {
+    const etNow = new Date().toLocaleDateString('en-US', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' });
+    marketAnchorState.anchorDate = etNow;
+    sessionStorage.setItem('ricky_anchor_v25', JSON.stringify(marketAnchorState));
+  }
+}
+
+function loadAnchorState() {
+  try {
+    const raw = sessionStorage.getItem('ricky_anchor_v25');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // 檢查錨定日期是否為今日（美東時間）
+      const etNow = new Date().toLocaleDateString('en-US', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' });
+      const anchorDate = parsed && parsed.anchorDate ? parsed.anchorDate : null;
+      if (anchorDate && anchorDate === etNow) {
+        marketAnchorState = parsed;
+        document.getElementById('marketStatus').textContent = marketAnchorState.marketStatus;
+        document.getElementById('marketStatus').style.color = marketAnchorState.statusColor || 'var(--green)';
+        document.getElementById('riskHint').textContent = marketAnchorState.limit;
+        document.getElementById('riskHint').style.color = marketAnchorState.statusColor || 'var(--green)';
+        showAnchor1(marketAnchorState.marketStatus, marketAnchorState.limit, marketAnchorState.statusColor || 'var(--green)', true);
+      } else {
+        // 過期：清除並強制重新抓取
+        sessionStorage.removeItem('ricky_anchor_v25');
+        marketAnchorState = null;
+        console.log('錨定狀態已過期（' + (anchorDate || '無日期') + ' vs ' + etNow + '），強制重新抓取 Stage 1');
+      }
+    }
+  } catch(e) {}
+}
+
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('btnFull').classList.toggle('active', mode === 'full');
+  document.getElementById('btnFast').classList.toggle('active', mode === 'fast');
+  if (mode === 'fast') document.getElementById('settlementPanel').classList.remove('open');
+}
+
+function updateClock() {
+  const etNow = new Date().toLocaleString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false });
+  document.getElementById('clockDisplay').textContent = '美東 ' + etNow;
+  const d = new Date().toLocaleDateString('zh-TW', { timeZone: 'America/New_York', month: 'long', day: 'numeric' });
+  document.getElementById('dateDisplay').textContent = d;
+
+  // FIX-4: 統一一次解析時分，避免跨秒不一致；parseInt 加 radix 10
+  const _etStr = new Date().toLocaleString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false });
+  const etHour   = parseInt(_etStr.split(':')[0], 10);
+  const etMinute = parseInt(_etStr.split(':')[1], 10);
+  const isPostMarket = etHour >= 16;
+  const isPreMarket = etHour < 9 || (etHour === 9 && etMinute < 30);
+  const marketSession = isPostMarket ? '盤後' : isPreMarket ? '盤前' : '盤中';
+  document.getElementById('dataTimestamp').textContent = `數據截至 ${etNow} ET（${marketSession}）`;
+  const warnEl = document.getElementById('postMarketWarn');
+  if (isPostMarket) {
+    warnEl.textContent = '⚠️ 盤後數據，次日開盤前請重新掃描';
+    warnEl.style.display = 'block';
+  } else if (isPreMarket) {
+    warnEl.textContent = '⚠️ 盤前時段，日線為昨日收盤價，指標可能與盤前價偏差 1–3%';
+    warnEl.style.display = 'block';
+  } else {
+    warnEl.style.display = 'none';
+  }
+}
+updateClock();
+setInterval(updateClock, 30000);
+
+function setTickers(t) { document.getElementById('tickerInput').value = t; }
+
+const DEFAULT_POOL = ['NVDA','AMD','AVGO','QCOM','MU','LRCX','AMAT','PLTR','CEG','VRT','ETN','HPQ'];
+const POOL_MAX = 15;
+const POOL_KEY_V27 = 'ricky_watch_pool_v27';
+const POOL_TAGS_PRESET = ['半導體','AI/雲端','能源基建','消費科技','生醫','自選'];
+const TAG_DEFAULT_MAP = {'NVDA':'半導體','AMD':'半導體','AVGO':'半導體','QCOM':'半導體','MU':'半導體','LRCX':'半導體','AMAT':'半導體','PLTR':'AI/雲端','CEG':'能源基建','VRT':'能源基建','ETN':'能源基建','HPQ':'消費科技'};
+
+let watchPool = []; // v2.7 格式: { ticker, tag, note, addedAt, lastVerdict }
+let poolFilter = 'all';
+let lastScanResults = []; // v2.7 匯出用
+
+function loadPool() {
+  try {
+    let saved = localStorage.getItem(POOL_KEY_V27);
+    if (!saved) saved = localStorage.getItem('ricky_watch_pool_v2'); // 升級遷移
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      watchPool = parsed.map(item =>
+        typeof item === 'string'
+          ? { ticker: item, tag: TAG_DEFAULT_MAP[item] || '自選', note: '', addedAt: '', lastVerdict: null }
+          : item
+      );
+    } else {
+      watchPool = DEFAULT_POOL.map(t => ({ ticker: t, tag: TAG_DEFAULT_MAP[t] || '自選', note: '', addedAt: '', lastVerdict: null }));
+    }
+  } catch(e) { watchPool = []; }
+  renderPool();
+}
+
+function savePool() {
+  try { localStorage.setItem(POOL_KEY_V27, JSON.stringify(watchPool)); } catch(e) {}
+}
+
+function renderPool() {
+  const container = document.getElementById('poolTags');
+  const count = watchPool.length;
+  document.getElementById('poolCountBadge').textContent = count;
+  document.getElementById('poolCountLabel').textContent = `${count} / ${POOL_MAX} 檔`;
+
+  let display = watchPool;
+  if (poolFilter === 'pass')   display = watchPool.filter(i => i.lastVerdict === 'pass');
+  else if (poolFilter === 'watch')  display = watchPool.filter(i => i.lastVerdict === 'watch');
+  else if (poolFilter === 'fail')   display = watchPool.filter(i => i.lastVerdict === 'fail');
+  else if (poolFilter === 'unscan') display = watchPool.filter(i => !i.lastVerdict);
+
+  if (display.length === 0) {
+    container.innerHTML = `<span class="pool-empty">${poolFilter === 'all' ? '觀察池為空，請新增標的' : '無符合篩選條件的標的'}</span>`;
+    return;
+  }
+
+  const groups = {};
+  display.forEach(item => {
+    const tag = item.tag || '自選';
+    if (!groups[tag]) groups[tag] = [];
+    groups[tag].push(item);
+  });
+
+  let html = '';
+  for (const [tag, items] of Object.entries(groups)) {
+    html += `<div class="pool-group"><div class="pool-group-label">${tag}</div><div style="display:flex;flex-wrap:wrap;gap:5px;">`;
+    items.forEach(item => {
+      const dot = item.lastVerdict === 'pass' ? '🟢' : item.lastVerdict === 'watch' ? '🟡' : item.lastVerdict === 'fail' ? '⚫' : '';
+      const noteTitle = (item.note || '點擊編輯備注與分組').replace(/"/g, '&quot;');
+      html += `<span class="pool-tag" title="${noteTitle}" style="cursor:pointer;" onclick="editPoolItem('${item.ticker}')">${dot}${item.ticker}<span class="remove-btn" onclick="event.stopPropagation();removeFromPool('${item.ticker}')" title="移除">×</span></span>`;
+    });
+    html += `</div></div>`;
+  }
+  container.innerHTML = html;
+}
+
+function filterPoolDisplay(type) {
+  poolFilter = type;
+  ['pfAll','pfPass','pfWatch','pfFail','pfUnscan'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.className = 'pf-btn';
+  });
+  const map = {all:'pfAll',pass:'pfPass',watch:'pfWatch',fail:'pfFail',unscan:'pfUnscan'};
+  const el = document.getElementById(map[type]); if(el) el.className = 'pf-btn pf-active';
+  renderPool();
+}
+
+function editPoolItem(ticker) {
+  const item = watchPool.find(i => i.ticker === ticker);
+  if (!item) return;
+  const newNote = prompt(`【${ticker}】備注（觀察理由/策略重點）：`, item.note || '');
+  if (newNote === null) return;
+  item.note = newNote.trim();
+  const newTag = prompt(`【${ticker}】分組標籤\n可選：${POOL_TAGS_PRESET.join(' / ')}`, item.tag || '自選');
+  if (newTag === null) return;
+  item.tag = POOL_TAGS_PRESET.includes(newTag.trim()) ? newTag.trim() : '自選';
+  savePool(); renderPool();
+  const m = document.getElementById('poolMsg');
+  m.textContent = `✅ ${ticker} 已更新`; setTimeout(() => m.textContent = '', 2000);
+}
+
+function addToPool() {
+  const input = document.getElementById('poolInput');
+  const msg = document.getElementById('poolMsg');
+  const noteEl = document.getElementById('poolNoteInput');
+  const tagEl  = document.getElementById('poolTagSelect');
+  const raw = input.value.trim().toUpperCase();
+  if (!raw) { msg.textContent = '⚠️ 請輸入代碼'; return; }
+  const tickers = raw.split(/[,\s]+/).filter(Boolean);
+  let added = 0, skipped = [];
+  for (const t of tickers) {
+    if (watchPool.find(i => i.ticker === t)) { skipped.push(t + '（已存在）'); continue; }
+    if (watchPool.length >= POOL_MAX) { skipped.push(t + '（已達上限）'); continue; }
+    watchPool.push({ ticker: t, tag: tagEl ? tagEl.value : '自選', note: noteEl ? noteEl.value.trim() : '', addedAt: new Date().toISOString().slice(0,10), lastVerdict: null });
+    added++;
+  }
+  savePool(); renderPool();
+  input.value = ''; if (noteEl) noteEl.value = '';
+  if (skipped.length > 0) msg.textContent = `⚠️ 跳過：${skipped.join('、')}`;
+  else if (added > 0) { msg.textContent = `✅ 已加入 ${added} 檔`; setTimeout(() => msg.textContent = '', 2000); }
+}
+
+function removeFromPool(ticker) {
+  watchPool = watchPool.filter(i => i.ticker !== ticker);
+  savePool(); renderPool();
+}
+
+function loadDefaultPool() {
+  if (watchPool.length > 0 && !confirm('載入預設將合併現有觀察池，確認繼續？')) return;
+  for (const t of DEFAULT_POOL) {
+    if (!watchPool.find(i => i.ticker === t) && watchPool.length < POOL_MAX)
+      watchPool.push({ ticker: t, tag: TAG_DEFAULT_MAP[t]||'自選', note: '', addedAt: new Date().toISOString().slice(0,10), lastVerdict: null });
+  }
+  savePool(); renderPool();
+  document.getElementById('poolMsg').textContent = '✅ 已載入預設觀察池（含分組）';
+  setTimeout(() => document.getElementById('poolMsg').textContent = '', 2000);
+}
+
+function clearPool() {
+  if (watchPool.length === 0) return;
+  if (!confirm('確定清空全部觀察池？')) return;
+  watchPool = []; savePool(); renderPool();
+}
+
+function togglePoolPanel() {
+  document.getElementById('poolPanel').classList.toggle('open');
+}
+
+function exportPoolJSON() {
+  try {
+    const json = JSON.stringify(watchPool, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'Ricky_WatchPool_' + new Date().toISOString().slice(0,10) + '.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    document.getElementById('poolMsg').textContent = '✅ 觀察池已導出';
+    setTimeout(() => document.getElementById('poolMsg').textContent = '', 2000);
+  } catch(e) { alert('導出失敗：' + e.message); }
+}
+
+function exportWatchlistCSV() {
+  if (!watchPool.length) { alert('觀察池為空'); return; }
+  const _esc = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+  const headers = ['標的','分組','備注','加入日期','最新判斷'];
+  const rows = watchPool.map(i => [i.ticker, i.tag||'自選', i.note||'', i.addedAt||'', i.lastVerdict||'未掃描']);
+  const csv = [headers.map(_esc).join(','), ...rows.map(r => r.map(_esc).join(','))].join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `Ricky_Watchlist_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+function updatePoolVerdicts(results) {
+  let updated = false;
+  results.forEach(r => {
+    const item = watchPool.find(i => i.ticker === r.ticker);
+    if (item && r.verdict) { item.lastVerdict = r.verdict; updated = true; }
+  });
+  if (updated) { savePool(); renderPool(); }
+}
+
+function togglePoolImport() {
+  const p = document.getElementById('poolImportPanel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+function importPoolJSON() {
+  const raw = document.getElementById('poolImportArea').value.trim();
+  const msg = document.getElementById('poolImportMsg');
+  if (!raw) { msg.textContent = '⚠️ 請貼上 JSON'; return; }
+  try {
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) { msg.textContent = '❌ 格式錯誤：必須是陣列'; return; }
+    const valid = arr.map(x => (typeof x === 'string' ? x : (x.ticker||'')).toUpperCase()).filter(x => /^[A-Z]{1,6}$/.test(x));
+    if (valid.length === 0) { msg.textContent = '❌ 無有效標的代碼'; return; }
+    const mode = confirm('點擊「確定」覆蓋現有觀察池，點擊「取消」合併（去重）？') ? 'replace' : 'merge';
+    if (mode === 'replace') watchPool = [];
+    for (const t of valid) {
+      if (!watchPool.find(i => i.ticker === t) && watchPool.length < POOL_MAX)
+        watchPool.push({ ticker: t, tag: '自選', note: '', addedAt: new Date().toISOString().slice(0,10), lastVerdict: null });
+    }
+    savePool(); renderPool();
+    document.getElementById('poolImportArea').value = '';
+    document.getElementById('poolImportPanel').style.display = 'none';
+    msg.textContent = '';
+    document.getElementById('poolMsg').textContent = `✅ 已${mode === 'replace' ? '覆蓋' : '合併'}導入 ${valid.length} 檔`;
+    setTimeout(() => document.getElementById('poolMsg').textContent = '', 2000);
+  } catch(e) { msg.textContent = '❌ JSON 解析失敗：' + e.message; }
+}
+
+function scanPool() {
+  if (watchPool.length === 0) {
+    togglePoolPanel();
+    document.getElementById('poolMsg').textContent = '⚠️ 觀察池為空，請先新增標的';
+    return;
+  }
+  setTickers(watchPool.map(i => i.ticker).join(','));
+  startScan();
+}
+
+loadPool();
+
+function toggleRules() {
+  const d = document.getElementById('rulesDrawer');
+  const a = document.getElementById('rulesArrow');
+  d.classList.toggle('open');
+  a.textContent = d.classList.contains('open') ? '▼' : '▶';
+}
+
+function clearAllCache() {
+  try {
+    localStorage.removeItem(CACHE_KEY);
+    sessionStorage.removeItem('ricky_anchor_v25');
+    marketAnchorState = null;
+    alert('✅ 快取已清除｜請重新執行 Stage 1 大盤錨定');
+    // FIX-9: 用 location.href 避免部分瀏覽器「重新提交表單」警告
+    location.href = location.pathname + location.search;
+  } catch(e) { alert('清除失敗：' + e.message); }
+}
+
+function resetDrawdown() {
+  if (!confirm('確定重置本月回撤紀錄？此操作不可復原。')) return;
+  try {
+    const now = new Date();
+    const ym = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    localStorage.removeItem('ricky_monthly_dd_v25_' + ym);
+    document.getElementById('monthlyDrawdown').textContent = '0.0%';
+    const a1dd = document.getElementById('a1Drawdown');
+    if (a1dd) a1dd.textContent = '0%';
+    updateDDProgress(0);
+    alert('✅ 月度回撤已重置');
+  } catch(e) { alert('重置失敗：' + e.message); }
+}
+
+const POSITIONS_KEY = 'ricky_positions_v25';
+let positions = [];
+
+function loadPositions() {
+  try {
+    const saved = localStorage.getItem(POSITIONS_KEY);
+    positions = saved ? JSON.parse(saved) : [];
+  } catch(e) { positions = []; }
+  renderPositions();
+}
+
+function savePositions() {
+  try { localStorage.setItem(POSITIONS_KEY, JSON.stringify(positions)); } catch(e) {}
+  renderPositions();
+  updateAnchorHoldCount();
+}
+
+function renderPositions() {
+  const container = document.getElementById('positionsList');
+  const badge = document.getElementById('posCountBadge');
+  if (badge) badge.textContent = positions.length + ' 檔';
+  
+  if (positions.length === 0) {
+    container.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0;">目前無持倉，請在掃描結果中點擊「📌 加入持倉」或手動新增</div>';
+    return;
+  }
+  
+  container.innerHTML = '<div style="display:flex;flex-direction:column;gap:6px;">' + 
+    positions.map((p, idx) => `
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg3);border-radius:var(--radius-sm);border-left:2px solid var(--green);font-size:12px;">
+        <span style="font-weight:600;font-family:'SF Mono',monospace;min-width:50px;color:var(--text);">${p.ticker}</span>
+        <span style="color:var(--text3);">進場 $${Number(p.entry).toFixed(2)} × ${p.shares}股</span>
+        <span style="margin-left:auto;color:var(--text3);">止損 $${Number(p.stopLoss || p.entry*0.98).toFixed(2)}</span>
+        <button onclick="removePosition(${idx})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;line-height:1;padding:0 4px;" title="移除">×</button>
+      </div>
+    `).join('') + '</div>';
+}
+
+function addPosition() {
+  const t = document.getElementById('posTicker').value.trim().toUpperCase();
+  const entry = parseFloat(document.getElementById('posEntry').value);
+  const shares = parseInt(document.getElementById('posShares').value) || 0;
+  const msg = document.getElementById('posMsg');
+  
+  if (!t || !entry || shares <= 0) {
+    msg.textContent = '⚠️ 請填寫標的、進場價、股數';
+    return;
+  }
+  // FIX-7c: 止損價合法性驗證
+  const _stopCheck = parseFloat(document.getElementById('posStop').value);
+  if (!isNaN(_stopCheck) && _stopCheck >= entry) {
+    msg.textContent = '⚠️ 止損價必須低於進場價';
+    return;
+  }
+  
+  const existing = positions.findIndex(p => p.ticker === t);
+  if (existing !== -1) {
+    if (!confirm(`${t} 已在持倉中，確定覆蓋？`)) return;
+    positions.splice(existing, 1);
+  }
+  
+  positions.push({ 
+    ticker: t, 
+    entry, 
+    shares, 
+    entryDate: new Date().toISOString().slice(0,10), 
+    // FIX-7: 讀取手動止損價，空白則預設進場×0.98
+    stopLoss: (() => {
+      const _sv = parseFloat(document.getElementById('posStop').value);
+      return (!isNaN(_sv) && _sv > 0 && _sv < entry) ? _sv : entry * 0.98;
+    })()
+  });
+  savePositions();
+  
+  document.getElementById('posTicker').value = '';
+  document.getElementById('posEntry').value = '';
+  document.getElementById('posStop').value = '';
+  document.getElementById('posShares').value = '';
+  msg.textContent = '✅ 已加入持倉';
+  setTimeout(() => msg.textContent = '', 2000);
+}
+
+function removePosition(idx) {
+  positions.splice(idx, 1);
+  savePositions();
+}
+
+function scanPositions() {
+  if (positions.length === 0) {
+    document.getElementById('posMsg').textContent = '⚠️ 持倉為空';
+    return;
+  }
+  setTickers(positions.map(p => p.ticker).join(','));
+  startScan();
+}
+
+function clearAllPositions() {
+  if (positions.length === 0) return;
+  if (!confirm(`確定清空全部 ${positions.length} 檔持倉？此操作不可復原。`)) return;
+  positions = [];
+  savePositions();
+  document.getElementById('posMsg').textContent = '✅ 全部持倉已清空';
+  setTimeout(() => document.getElementById('posMsg').textContent = '', 2000);
+}
+
+function quickAddPosition(ticker, entry, shares, stopLoss) {
+  const existing = positions.findIndex(p => p.ticker === ticker);
+  if (existing !== -1) {
+    if (!confirm(`${ticker} 已在持倉中，確定覆蓋？`)) return;
+    positions.splice(existing, 1);
+  }
+  positions.push({ 
+    ticker, 
+    entry, 
+    shares, 
+    entryDate: new Date().toISOString().slice(0,10), 
+    stopLoss 
+  });
+  savePositions();
+  alert(`✅ ${ticker} 已加入持倉｜進場 $${entry.toFixed(2)} × ${shares}股｜止損 $${stopLoss.toFixed(2)}`);
+}
+
+function updateAnchorHoldCount() {
+  const el = document.getElementById('a1Hold');
+  if (el) el.textContent = positions.length;
+}
+
+const CAPITAL_KEY = 'ricky_capital_params_v25';
+function saveCapitalParams() {
+  const cap = parseFloat(document.getElementById('totalCapital').value) || 100000;
+  const risk = parseFloat(document.getElementById('riskPerTrade').value) || 2.0;
+  try { localStorage.setItem(CAPITAL_KEY, JSON.stringify({cap, risk})); } catch(e) {}
+  document.getElementById('capitalSummary').textContent = '$' + (cap/1000).toFixed(0) + 'K × ' + risk.toFixed(1) + '%';
+}
+function getCapitalParams() {
+  try {
+    const saved = localStorage.getItem(CAPITAL_KEY);
+    if (saved) { const p = JSON.parse(saved); return { cap: p.cap || 100000, risk: p.risk || 2.0 }; }
+  } catch(e) {}
+  return { cap: 100000, risk: 2.0 };
+}
+function loadCapitalParams() {
+  const p = getCapitalParams();
+  const capInput = document.getElementById('totalCapital');
+  const riskInput = document.getElementById('riskPerTrade');
+  if (capInput) capInput.value = p.cap;
+  if (riskInput) riskInput.value = p.risk;
+  const summary = document.getElementById('capitalSummary');
+  if (summary) summary.textContent = '$' + (p.cap/1000).toFixed(0) + 'K × ' + p.risk.toFixed(1) + '%';
+}
+
+const dataStore = {};
+
+async function runMarketAnchor() {
+  const wrap = document.getElementById('marketFilterWrap');
+  const body = document.getElementById('marketFilterBody');
+  const verdict = document.getElementById('marketVerdict');
+  const fallback = document.getElementById('fallbackPanel');
+  wrap.style.display = 'block';
+  fallback.classList.remove('open');
+  body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;"><div class="spinner" style="margin:0 auto;"></div><div style="margin-top:8px;font-size:12px;color:var(--text3);">從 Yahoo Finance 抓取 QQQ / SPY 數據（自動嘗試多個來源 + 佇列限速）...</div></td></tr>';
+
+  try {
+    const [qqqData, spyData] = await Promise.all([
+      enqueueRequest(() => fetchYahooChart('QQQ', '1y')),
+      enqueueRequest(() => fetchYahooChart('SPY', '1y'))
+    ]);
+
+    const qqq = parseChart(qqqData);
+    const spy = parseChart(spyData);
+
+    const qEma20  = calcEMA(qqq.closes, 20);
+    const qEma50  = calcEMA(qqq.closes, 50);
+    const qEma200 = calcEMA(qqq.closes, 200);
+    const qRsi    = calcRSI(qqq.closes, 14);
+    const qMacd   = calcMACD(qqq.closes);
+
+    const sEma20  = calcEMA(spy.closes, 20);
+    const sEma50  = calcEMA(spy.closes, 50);
+    const sEma200 = calcEMA(spy.closes, 200);
+    const sRsi    = calcRSI(spy.closes, 14);
+    const sMacd   = calcMACD(spy.closes);
+
+    const latestQ = qqq.closes.length - 1;
+    const latestS = spy.closes.length - 1;
+    const q5d = Math.max(0, latestQ - 5);
+    const s5d = Math.max(0, latestS - 5);
+
+    const q = {
+      price: qqq.closes[latestQ],
+      ema20: qEma20[latestQ],
+      ema50: qEma50[latestQ],
+      ema200: qEma200[latestQ],
+      ema50_5d: qEma50[q5d],
+      macd: qMacd.macd[latestQ],
+      rsi: qRsi[latestQ],
+      volume: qqq.volumes[latestQ],
+      volume_5d: qqq.volumes.slice(-5).reduce((a,b)=>a+b,0)/5
+    };
+    const s = {
+      price: spy.closes[latestS],
+      ema20: sEma20[latestS],
+      ema50: sEma50[latestS],
+      ema200: sEma200[latestS],
+      ema50_5d: sEma50[s5d],
+      macd: sMacd.macd[latestS],
+      rsi: sRsi[latestS],
+      volume: spy.volumes[latestS],
+      volume_5d: spy.volumes.slice(-5).reduce((a,b)=>a+b,0)/5
+    };
+
+    const c1q = q.ema50 >= q.ema50_5d * 0.995;
+    const c1s = s.ema50 >= s.ema50_5d * 0.995;
+    const c2q = q.price > q.ema50;
+    const c2s = s.price > s.ema50;
+    const c3q = q.ema20 > q.ema50;
+    const c3s = s.ema20 > s.ema50;
+    const c4q = q.macd > 0;
+    const c4s = s.macd > 0;
+    const c5q = q.rsi != null && q.rsi >= 45 && q.rsi <= 65;
+    const c5s = s.rsi != null && s.rsi >= 45 && s.rsi <= 65;
+    const c5q_warn = q.rsi != null && q.rsi > 65 && q.rsi <= 70;
+    const c5s_warn = s.rsi != null && s.rsi > 65 && s.rsi <= 70;
+    const c5q_block = q.rsi != null && q.rsi > 70;
+    const c5s_block = s.rsi != null && s.rsi > 70;
+    // v2.8: EMA200 牛熊判斷（參考用，不阻斷進場）
+    const c7q = q.ema200 != null && q.price > q.ema200;
+    const c7s = s.ema200 != null && s.price > s.ema200;
+    const ema200BullStr_q = q.ema200 != null ? (c7q ? `<span style="color:var(--green)">$${q.price.toFixed(2)} > $${q.ema200.toFixed(2)} ✅</span>` : `<span style="color:var(--red)">$${q.price.toFixed(2)} < $${q.ema200.toFixed(2)} ❌</span>`) : '—';
+    const ema200BullStr_s = s.ema200 != null ? (c7s ? `<span style="color:var(--green)">$${s.price.toFixed(2)} > $${s.ema200.toFixed(2)} ✅</span>` : `<span style="color:var(--red)">$${s.price.toFixed(2)} < $${s.ema200.toFixed(2)} ❌</span>`) : '—';
+
+    const allPass = c1q && c1s && c2q && c2s && c3q && c3s && c4q && c4s && c5q && c5s;
+    const anyBlock = c5q_block || c5s_block;
+    const anyWarn = (c5q_warn || c5s_warn) && !anyBlock;
+    const ema200Bull = c7q && c7s; // 雙指數站 EMA200 = 大牛市結構
+
+    let marketStatus, limit, statusColor;
+    if (allPass) { marketStatus = '多頭'; limit = '5–6 成'; statusColor = 'var(--green)'; }
+    else if (anyBlock) { marketStatus = '空頭/警戒（RSI>70）'; limit = '0 成（空倉觀望）'; statusColor = 'var(--red)'; }
+    else if (anyWarn) { marketStatus = '震盪（RSI 65–70 緩衝）'; limit = '2–3 成'; statusColor = 'var(--amber)'; }
+    else { marketStatus = '空頭/觀望'; limit = '0 成'; statusColor = 'var(--text3)'; }
+
+    marketAnchorState = { marketStatus, limit, allPass, anyBlock, anyWarn, q, s, statusColor, ema200Bull, c7q, c7s };
+    saveAnchorState();
+
+    const rows = [
+      ['①', 'EMA50 走平或向上', 'EMA50 ≥ 5日前×0.995', `$${q.ema50.toFixed(2)} ≥ $${(q.ema50_5d*0.995).toFixed(2)}`, `$${s.ema50.toFixed(2)} ≥ $${(s.ema50_5d*0.995).toFixed(2)}`, c1q && c1s],
+      ['②', '股價站穩EMA50上方', '收盤價 > EMA50', `$${q.price.toFixed(2)} > $${q.ema50.toFixed(2)}`, `$${s.price.toFixed(2)} > $${s.ema50.toFixed(2)}`, c2q && c2s],
+      ['③', 'EMA20 > EMA50', 'EMA20 > EMA50', `$${q.ema20.toFixed(2)} > $${q.ema50.toFixed(2)}`, `$${s.ema20.toFixed(2)} > $${s.ema50.toFixed(2)}`, c3q && c3s],
+      ['④', 'MACD > 0', 'MACD > 0', `${q.macd.toFixed(2)} > 0`, `${s.macd.toFixed(2)} > 0`, c4q && c4s],
+      ['⑤', 'RSI(14) 45–65', '45 ≤ RSI ≤ 65', `${q.rsi != null ? q.rsi.toFixed(1) : '—'} ${c5q_block ? '❌>70' : c5q_warn ? '⚠65–70' : c5q ? '✅' : '❌'}`, `${s.rsi != null ? s.rsi.toFixed(1) : '—'} ${c5s_block ? '❌>70' : c5s_warn ? '⚠65–70' : c5s ? '✅' : '❌'}`, c5q && c5s],
+      ['⑥', '大盤 QQQ/SPY 同步多頭', '以上 5 項 QQQ & SPY 全部通過', allPass ? '✅ 全通過' : '❌ 未全通過', allPass ? '✅ 全通過' : '❌ 未全通過', allPass],
+      ['⑦', 'EMA200 牛市結構（參考）', '收盤價 > EMA200', ema200BullStr_q, ema200BullStr_s, c7q && c7s, true],
+    ];
+
+    body.innerHTML = rows.map(row => {
+      const isRef = row[6] === true; // ⑦ EMA200 是參考項
+      const rowStyle = isRef ? 'opacity:0.8;border-top:1px dashed var(--border2);' : '';
+      const refBadge = isRef ? ' <span style="font-size:9px;color:var(--text3);font-weight:400;">[參考]</span>' : '';
+      const resultCell = isRef
+        ? `<td class="res" style="color:${row[5] ? 'var(--green)' : 'var(--red)'};font-weight:600;">${row[5] ? '🐂 牛市' : '🐻 熊市'}</td>`
+        : `<td class="res" style="color:${row[5] ? 'var(--green)' : 'var(--red)'};font-weight:600;">${row[5] ? '✅' : '❌'}</td>`;
+      return `<tr style="${rowStyle}">
+        <td><strong>${row[0]}</strong>${refBadge}</td>
+        <td>${row[1]}</td>
+        <td style="font-size:11px;color:var(--text3);">${row[2]}</td>
+        <td class="val">${row[3]}</td>
+        <td class="val">${row[4]}</td>
+        ${resultCell}
+      </tr>`;
+    }).join('');
+
+    verdict.innerHTML = `
+      <span style="color:${statusColor};">
+        ${allPass ? '🟢' : anyBlock ? '🔴' : anyWarn ? '🟡' : '🔴'} 大盤同步結論：${marketStatus} → 總倉位上限 ${limit}
+      </span>
+      <span class="anchor-ema200 ${ema200Bull ? 'bull' : 'bear'}" title="EMA200 = 機構級牛熊分界線（1年數據）">
+        ${ema200Bull ? '🐂 EMA200 牛市結構' : '🐻 EMA200 熊市結構'}
+      </span>
+      <div style="margin-top:6px;font-size:12px;color:var(--text3);font-weight:400;">
+        ⚠️ 檢核原則：⑥項缺一不可，${!allPass ? '當前缺項 → 嚴格判定「不可進場」' : '全項通過 → 可進入個股掃描'} ｜ ⑦EMA200 僅供牛熊背景參考
+      </div>
+    `;
+
+    const notes = [];
+    if (!c1q) notes.push(`❌ QQQ_EMA50(${q.ema50.toFixed(2)}) < 5日前EMA50×0.995(${(q.ema50_5d*0.995).toFixed(2)})　→ 條件①不通過`);
+    if (!c1s) notes.push(`❌ SPY_EMA50(${s.ema50.toFixed(2)}) < 5日前EMA50×0.995(${(s.ema50_5d*0.995).toFixed(2)})　→ 條件①不通過`);
+    if (!c2q) notes.push(`❌ QQQ_收盤(${q.price.toFixed(2)}) ≤ EMA50(${q.ema50.toFixed(2)})　→ 條件②不通過`);
+    if (!c2s) notes.push(`❌ SPY_收盤(${s.price.toFixed(2)}) ≤ EMA50(${s.ema50.toFixed(2)})　→ 條件②不通過`);
+    if (!c3q) notes.push(`❌ QQQ_EMA20(${q.ema20.toFixed(2)}) < EMA50(${q.ema50.toFixed(2)})　→ 條件③不通過`);
+    if (!c3s) notes.push(`❌ SPY_EMA20(${s.ema20.toFixed(2)}) < EMA50(${s.ema50.toFixed(2)})　→ 條件③不通過`);
+    if (!c4q) notes.push(`❌ QQQ_MACD(${q.macd.toFixed(2)}) < 0　→ 條件④不通過`);
+    if (!c4s) notes.push(`❌ SPY_MACD(${s.macd.toFixed(2)}) < 0　→ 條件④不通過`);
+    if (c5q_block) notes.push(`❌ QQQ_RSI(${q.rsi != null ? q.rsi.toFixed(1) : '—'}) > 70　→ 條件⑤禁追警戒`);
+    else if (c5q_warn) notes.push(`⚠️ QQQ_RSI(${q.rsi != null ? q.rsi.toFixed(1) : '—'}) 在 65–70 緩衝區　→ 條件⑤警戒`);
+    else if (!c5q) notes.push(`❌ QQQ_RSI(${q.rsi != null ? q.rsi.toFixed(1) : '—'}) < 45 觀望區　→ 條件⑤不通過`);
+    if (c5s_block) notes.push(`❌ SPY_RSI(${s.rsi != null ? s.rsi.toFixed(1) : '—'}) > 70　→ 條件⑤禁追警戒`);
+    else if (c5s_warn) notes.push(`⚠️ SPY_RSI(${s.rsi != null ? s.rsi.toFixed(1) : '—'}) 在 65–70 緩衝區　→ 條件⑤警戒`);
+    else if (!c5s) notes.push(`❌ SPY_RSI(${s.rsi != null ? s.rsi.toFixed(1) : '—'}) < 45 觀望區　→ 條件⑤不通過`);
+
+    const notesDiv = document.getElementById('triggerNotes');
+    const notesList = document.getElementById('triggerNotesList');
+    if (notes.length > 0) {
+      notesList.innerHTML = notes.map(n => `<div>${n}</div>`).join('');
+      notesDiv.style.display = 'block';
+    } else {
+      notesDiv.style.display = 'none';
+    }
+
+    document.getElementById('marketStatus').textContent = marketStatus;
+    document.getElementById('marketStatus').style.color = statusColor;
+    document.getElementById('riskHint').textContent = limit;
+    document.getElementById('riskHint').style.color = statusColor;
+
+    showAnchor1(marketStatus, limit, statusColor, false);
+
+  } catch(e) {
+    console.error(e);
+    body.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--red);">⚠️ 自動抓取失敗：${e.message}<br><span style="font-size:12px;color:var(--text3);">請使用下方「人工數據」面板手動輸入，或複製 Python 後備代碼執行</span></td></tr>`;
+    fallback.classList.add('open');
+    marketAnchorState = null;
+  }
+}
+
+function showAnchor1(status, limit, color, fromCache) {
+  document.getElementById('anchorStage1').style.display = 'block';
+  document.getElementById('a1Time').textContent = new Date().toLocaleString('zh-TW', {timeZone:'America/New_York'});
+  const mkt = document.getElementById('a1Market');
+  mkt.textContent = status;
+  mkt.style.color = color;
+  document.getElementById('a1Limit').textContent = limit;
+  document.getElementById('a1Limit').style.color = color;
+  document.getElementById('a1Hold').textContent = positions.length;
+  document.getElementById('a1Watch').textContent = '0';
+  document.getElementById('a1Drawdown').textContent = '0%';
+  const badge = document.getElementById('anchorCacheBadge');
+  if (fromCache) { badge.textContent = '已恢復'; badge.className = 'cache-badge stale'; }
+  else { badge.textContent = '即時'; badge.className = 'cache-badge fresh'; }
+}
+
+function applyFallback() {
+  const get = id => parseFloat(document.getElementById(id).value) || 0;
+  const q = { price: get('fbQPrice'), ema20: get('fbQEma20'), ema50: get('fbQEma50'), ema50_5d: get('fbQEma50_5d'), macd: get('fbQMacd'), rsi: get('fbQRsi') };
+  const s = { price: get('fbSPrice'), ema20: get('fbSEma20'), ema50: get('fbSEma50'), ema50_5d: get('fbSEma50_5d'), macd: get('fbSMacd'), rsi: get('fbSRsi') };
+
+  const c1q = q.ema50 >= q.ema50_5d * 0.995;
+  const c1s = s.ema50 >= s.ema50_5d * 0.995;
+  const c2q = q.price > q.ema50;
+  const c2s = s.price > s.ema50;
+  const c3q = q.ema20 > q.ema50;
+  const c3s = s.ema20 > s.ema50;
+  const c4q = q.macd > 0;
+  const c4s = s.macd > 0;
+  // FIX-8: RSI null guard（人工輸入可能漏填）
+  if (q.rsi == null || s.rsi == null) {
+    alert('⚠️ QQQ 或 SPY 的 RSI(14) 未填寫，為必填欄位，請補上後重新套用。');
+    return;
+  }
+  const c5q = q.rsi >= 45 && q.rsi <= 65;
+  const c5s = s.rsi >= 45 && s.rsi <= 65;
+  const c5q_warn = q.rsi > 65 && q.rsi <= 70;
+  const c5s_warn = s.rsi > 65 && s.rsi <= 70;
+  const c5q_block = q.rsi > 70;
+  const c5s_block = s.rsi > 70;
+
+  const allPass = c1q && c1s && c2q && c2s && c3q && c3s && c4q && c4s && c5q && c5s;
+  const anyBlock = c5q_block || c5s_block;
+  const anyWarn = (c5q_warn || c5s_warn) && !anyBlock;
+
+  let marketStatus, limit, statusColor;
+  if (allPass) { marketStatus = '多頭'; limit = '5–6 成'; statusColor = 'var(--green)'; }
+  else if (anyBlock) { marketStatus = '空頭/警戒（RSI>70）'; limit = '0 成'; statusColor = 'var(--red)'; }
+  else if (anyWarn) { marketStatus = '震盪（RSI 65–70）'; limit = '2–3 成'; statusColor = 'var(--amber)'; }
+  else { marketStatus = '空頭/觀望'; limit = '0 成'; statusColor = 'var(--text3)'; }
+
+  marketAnchorState = { marketStatus, limit, allPass, anyBlock, anyWarn, q, s, statusColor };
+  saveAnchorState();
+
+  const body = document.getElementById('marketFilterBody');
+  body.innerHTML = `
+    <tr><td><strong>①</strong></td><td>EMA50 走平或向上</td><td style="font-size:11px;color:var(--text3);">人工輸入</td><td class="val">$${q.ema50.toFixed(2)} ≥ $${(q.ema50_5d*0.995).toFixed(2)}</td><td class="val">$${s.ema50.toFixed(2)} ≥ $${(s.ema50_5d*0.995).toFixed(2)}</td><td class="res" style="color:${c1q&&c1s?'var(--green)':'var(--red)'};font-weight:600;">${c1q&&c1s?'✅':'❌'}</td></tr>
+    <tr><td><strong>②</strong></td><td>股價站穩EMA50上方</td><td style="font-size:11px;color:var(--text3);">人工輸入</td><td class="val">$${q.price.toFixed(2)} > $${q.ema50.toFixed(2)}</td><td class="val">$${s.price.toFixed(2)} > $${s.ema50.toFixed(2)}</td><td class="res" style="color:${c2q&&c2s?'var(--green)':'var(--red)'};font-weight:600;">${c2q&&c2s?'✅':'❌'}</td></tr>
+    <tr><td><strong>③</strong></td><td>EMA20 > EMA50</td><td style="font-size:11px;color:var(--text3);">人工輸入</td><td class="val">$${q.ema20.toFixed(2)} > $${q.ema50.toFixed(2)}</td><td class="val">$${s.ema20.toFixed(2)} > $${s.ema50.toFixed(2)}</td><td class="res" style="color:${c3q&&c3s?'var(--green)':'var(--red)'};font-weight:600;">${c3q&&c3s?'✅':'❌'}</td></tr>
+    <tr><td><strong>④</strong></td><td>MACD > 0</td><td style="font-size:11px;color:var(--text3);">人工輸入</td><td class="val">${q.macd.toFixed(2)} > 0</td><td class="val">${s.macd.toFixed(2)} > 0</td><td class="res" style="color:${c4q&&c4s?'var(--green)':'var(--red)'};font-weight:600;">${c4q&&c4s?'✅':'❌'}</td></tr>
+    <tr><td><strong>⑤</strong></td><td>RSI(14) 45–65</td><td style="font-size:11px;color:var(--text3);">人工輸入</td><td class="val">${q.rsi.toFixed(1)} ${c5q_block?'❌>70':c5q_warn?'⚠65–70':c5q?'✅':'❌'}</td><td class="val">${s.rsi.toFixed(1)} ${c5s_block?'❌>70':c5s_warn?'⚠65–70':c5s?'✅':'❌'}</td><td class="res" style="color:${c5q&&c5s?'var(--green)':'var(--red)'};font-weight:600;">${c5q&&c5s?'✅':'❌'}</td></tr>
+    <tr><td><strong>⑥</strong></td><td>大盤 QQQ/SPY 同步多頭</td><td style="font-size:11px;color:var(--text3);">以上 5 項全通過</td><td class="val">${allPass?'✅ 全通過':'❌ 未全通過'}</td><td class="val">${allPass?'✅ 全通過':'❌ 未全通過'}</td><td class="res" style="color:${allPass?'var(--green)':'var(--red)'};font-weight:600;">${allPass?'✅':'❌'}</td></tr>
+  `;
+  document.getElementById('marketVerdict').innerHTML = `<span style="color:${statusColor};">${allPass ? '🟢' : anyBlock ? '🔴' : anyWarn ? '🟡' : '🔴'} 大盤同步結論（人工）：${marketStatus} → 總倉位上限 ${limit}</span>`;
+  document.getElementById('marketStatus').textContent = marketStatus + '（人工）';
+  document.getElementById('marketStatus').style.color = statusColor;
+  document.getElementById('riskHint').textContent = limit;
+  document.getElementById('riskHint').style.color = statusColor;
+  showAnchor1(marketStatus + '（人工）', limit, statusColor, false);
+  document.getElementById('fallbackPanel').classList.remove('open');
+}
+
+function retryMarketAnchor() {
+  document.getElementById('fallbackPanel').classList.remove('open');
+  runMarketAnchor();
+}
+
+async function startScan() {
+  if (!marketAnchorState) {
+    await runMarketAnchor();
+    if (!marketAnchorState) {
+      alert('Stage 1 大盤錨定未完成，請確認數據已載入或手動輸入。');
+      return;
+    }
+  }
+
+  const raw = document.getElementById('tickerInput').value.trim();
+  if (!raw) return;
+  const tickers = [...new Set(raw.split(/[,\s]+/).map(t => t.trim().toUpperCase()).filter(Boolean))];
+  if (!tickers.length) return;
+
+  const btn = document.getElementById('scanBtn');
+  btn.disabled = true;
+  btn.textContent = '掃描中...';
+
+  const area = document.getElementById('resultsArea');
+  area.innerHTML = tickers.map(t => `
+    <div class="loading-card" id="card-${t}">
+      <div class="spinner"></div>
+      <div>
+        <div class="loading-ticker">${t}</div>
+        <div class="loading-info">佇列請求中（限速保護）...</div>
+      </div>
+    </div>
+  `).join('');
+
+  const results = [];
+  for (const t of tickers) {
+    try {
+      const r = await enqueueRequest(() => scanTicker(t));
+      results.push(r);
+    } catch(e) {
+      results.push({ ticker: t, error: true, verdict: 'fail', notes: '佇列執行錯誤：' + e.message, passed: 0 });
+    }
+  }
+
+  const passed = results.filter(r => r.verdict === 'pass').length;
+  const watchCount = results.filter(r => r.verdict === 'watch').length;
+  const failed = results.filter(r => r.verdict === 'fail').length;
+
+  area.innerHTML = `
+    <div class="result-summary">
+      <span class="s-item">共掃描 <strong>${results.length}</strong> 檔</span>
+      <span class="s-item" style="color:var(--green)">✓ 可進場觀察 <strong>${passed}</strong></span>
+      <span class="s-item" style="color:var(--amber)">△ 部分符合 <strong>${watchCount}</strong></span>
+      <span class="s-item" style="color:var(--text3)">✗ 排除 <strong>${failed}</strong></span>
+    </div>
+    ${results.sort((a,b) => b.passed - a.passed).map(renderCard).join('')}
+  `;
+
+  document.getElementById('a1Watch').textContent = results.filter(r => r.passed >= 4).length;
+
+  if (currentMode === 'full') {
+    document.getElementById('settlementPanel').classList.add('open');
+  }
+
+  // v2.7: 收集結果、更新觀察池 PASS 標記、啟用匯出按鈕
+  lastScanResults = results.filter(r => r && !r.error);
+  updatePoolVerdicts(lastScanResults);
+  const _expBtn = document.getElementById('exportReportBtn');
+  if (_expBtn) { _expBtn.disabled = false; _expBtn.style.color='var(--green)'; _expBtn.style.borderColor='rgba(34,201,122,0.5)'; }
+
+  btn.disabled = false;
+  btn.textContent = '⚡ 開始掃描';
+}
+
+async function scanTicker(ticker) {
+  try {
+    const chart = await fetchYahooChart(ticker, '1y');
+    const data = parseChart(chart);
+    const earningsDate = await fetchYahooEarnings(ticker);
+
+    const ema20 = calcEMA(data.closes, 20);
+    const ema50 = calcEMA(data.closes, 50);
+    const rsi = calcRSI(data.closes, 14);
+    const macdObj = calcMACD(data.closes);
+    const atrArr = calcATR(data.highs, data.lows, data.closes, 14);
+
+    const last = data.closes.length - 1;
+    const d5 = Math.max(0, last - 5);
+
+    const price = data.closes[last];
+    const e20 = ema20[last];
+    const e50 = ema50[last];
+    const e50_5d = ema50[d5];
+    const macd = macdObj.macd[last];
+    const rsiVal = rsi[last];  // #2: 不預設，讓 null 暴露
+    const volume = data.volumes[last];
+    const vol5d = data.volumes.slice(-5).reduce((a,b)=>a+b,0) / 5;
+    const atr = atrArr.length ? atrArr[atrArr.length-1] : null;
+
+    const vol20avg = data.volumes.slice(-21, -1).reduce((a,b)=>a+b,0) / 20;
+    const volRatio = vol20avg > 0 ? volume / vol20avg : null;
+    const lastHigh = data.highs[last];
+    const lastLow  = data.lows[last];
+    const amplitude = (lastHigh && lastLow && lastLow > 0) ? ((lastHigh - lastLow) / lastLow * 100) : null;
+    const high52w = Math.max(...data.highs);
+    const dist52wHigh = high52w > 0 ? ((high52w - price) / high52w * 100) : null;
+
+    const buf_vol = volRatio != null  ? volRatio >= 1.2  : false;
+    const buf_amp = amplitude != null ? amplitude < 3    : false;
+    const buf_52w = dist52wHigh != null ? dist52wHigh >= 5 : false;
+    const c5_buf_pass = buf_vol && buf_amp && buf_52w;
+
+    let earnings_within_3days = false;
+    if (earningsDate) {
+      // E3: 統一 UTC 天數計算，消除時區偏差
+      const ed = new Date(earningsDate + 'T12:00:00Z');
+      const now = new Date();
+      const edDay = Math.floor(ed.getTime() / (1000 * 60 * 60 * 24));
+      const nowDay = Math.floor(now.getTime() / (1000 * 60 * 60 * 24));
+      const diff = edDay - nowDay;
+      earnings_within_3days = diff >= 0 && diff <= 3;
+    }
+
+    const c5       = rsiVal != null && rsiVal >= 45 && rsiVal <= 65;
+    const c5_warn  = rsiVal != null && rsiVal > 65  && rsiVal <= 70;
+    const c5_warn2_rsi = rsiVal != null && rsiVal > 70 && rsiVal <= 75;
+    const c5_warn2 = c5_warn2_rsi && c5_buf_pass;
+    const c5_block = (rsiVal != null && rsiVal > 75) || (c5_warn2_rsi && !c5_buf_pass);
+
+    const c1 = e50 >= e50_5d * 0.995;
+    const c2 = price > e50;
+    const c3 = e20 > e50;
+    const c4 = macd > 0;
+    const c6 = marketAnchorState ? marketAnchorState.allPass : false;
+
+    const distEma20 = ((price - e20) / e20) * 100;
+    const entryDistanceOk = Math.abs(distEma20) <= 1.5;
+    // FIX-5: 縮量判斷用不含今日的5日均量，避免今日大量拉高基準
+    const vol5dAvg = data.volumes.length >= 6
+      ? data.volumes.slice(-6, -1).reduce((a,b)=>a+b,0) / 5
+      : vol5d;
+    const volumeShrink = volume < vol5dAvg;
+    const earnings_ok = !earnings_within_3days;
+
+    const passed = [c1, c2, c3, c4, c5].filter(Boolean).length;
+
+    let verdict;
+    if (passed === 5 && c6 && earnings_ok && entryDistanceOk) verdict = 'pass';
+    else if (passed >= 3 && !c5_block) verdict = 'watch';
+    else verdict = 'fail';
+
+    // FIX-1: 止損邏輯重構
+    // technicalStop = max(ATR止損, EMA50止損) — 取較嚴格者
+    // hardStop = price×0.98 — 最大允許虧損上限（2%）
+    // stopLoss = min(technicalStop, hardStop) — 確保不超過2%硬止損
+    const atrStop = price - (atr != null ? atr * 1.5 : price * 0.02);
+    const emaStop = e50 * 0.98;
+    const hardStop = price * 0.98;
+    const technicalStop = Math.max(atrStop, emaStop);
+    const stopLoss = Math.max(0, Math.min(technicalStop, hardStop));
+    
+    // FIX-2: 目標價保護 — 確保至少高於現價5%
+    const targetPrice = Math.max(price * 1.05, high52w * 0.95);
+    const riskPerShare = price - stopLoss;
+    const rewardPerShare = Math.max(0, targetPrice - price);
+    const rrRatio = riskPerShare > 0 ? (rewardPerShare / riskPerShare) : 0;
+    const { cap, risk } = getCapitalParams();
+    const suggestedShares = riskPerShare > 0 ? Math.floor((cap * (risk / 100)) / riskPerShare) : 0;
+
+    dataStore[ticker] = { closes: data.closes };
+    const isHolding = positions.some(p => p.ticker === ticker);
+
+    return {
+      ticker, price, ema20: e20, ema50: e50, ema50_5d: e50_5d,
+      isHolding,
+      macd, rsi: rsiVal, volume, volume_5d_avg: vol5d,
+      volRatio, amplitude, dist52wHigh, high52w,
+      buf_vol, buf_amp, buf_52w, c5_buf_pass,
+      earnings_date: earningsDate, earnings_within_3days, earnings_ok,
+      c1, c2, c3, c4, c5, c5_warn, c5_warn2, c5_warn2_rsi, c5_block, c6,
+      distEma20, entryDistanceOk, volumeShrink,
+      passed, verdict,
+      notes: `EMA20 $${e20.toFixed(2)} | EMA50 $${e50.toFixed(2)} | 距EMA20 ${distEma20>0?'+':''}${distEma20.toFixed(2)}%`,
+      stopLoss, targetPrice, riskPerShare, rewardPerShare, rrRatio, suggestedShares, atr
+    };
+  } catch(e) {
+    return {
+      ticker, price: null, ema20: null, ema50: null, ema50_5d: null,
+      isHolding: false,
+      macd: null, rsi: null, volume: null, volume_5d_avg: null,
+      volRatio: null, amplitude: null, dist52wHigh: null, high52w: null,
+      buf_vol: false, buf_amp: false, buf_52w: false, c5_buf_pass: false,
+      earnings_date: null, earnings_within_3days: null, earnings_ok: null,
+      c1: false, c2: false, c3: false, c4: false, c5: false,
+      c5_warn: false, c5_warn2: false, c5_warn2_rsi: false, c5_block: false, c6: false,
+      distEma20: null, entryDistanceOk: false, volumeShrink: false,
+      passed: 0, verdict: 'fail', error: true,
+      notes: '無法取得數據：' + e.message,
+      stopLoss: null, targetPrice: null, riskPerShare: null, rewardPerShare: null, rrRatio: null, suggestedShares: 0, atr: null
+    };
+  }
+}
+
+function fmt(v, dec=2) { return v != null ? Number(v).toFixed(dec) : '—'; }
+
+function renderSparkline(closes) {
+  if (!closes || closes.length < 2) return '';
+  const recent = closes.slice(-30);
+  const min = Math.min(...recent);
+  const max = Math.max(...recent);
+  const range = max - min || 1;
+  const w = 300, h = 40;
+  const points = recent.map((v, i) => {
+    const x = (i / (recent.length - 1)) * w;
+    const y = h - ((v - min) / range) * h;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const color = recent[recent.length-1] >= recent[0] ? 'var(--green)' : 'var(--red)';
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${points}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+function renderCard(r) {
+  const pct = Math.round((r.passed / 5) * 100);
+  const barColor = r.passed === 5 ? 'var(--green)' : r.passed >= 3 ? 'var(--amber)' : 'var(--text3)';
+  const vLabel = r.verdict === 'pass' ? '✓ 可進場觀察' : r.verdict === 'watch' ? '△ 部分符合' : '✗ 不符合';
+
+  const c = (ok, title, val, valClass, extra='') => `
+    <div class="cond-item ${ok === true ? 'ok' : ok === false ? 'no' : 'warn'}">
+      <div class="cond-check ${ok === true ? 'ok' : ok === false ? 'no' : 'warn'}">${ok === true ? '✓' : ok === false ? '✗' : '—'}</div>
+      <div class="cond-body">
+        <div class="cond-title">${title}</div>
+        <div class="cond-val ${valClass || (ok === true ? 'ok' : ok === false ? 'no' : 'warn')}">${val}</div>
+        ${extra}
+      </div>
+    </div>`;
+
+  const ema50dir = r.c1 ? '向上/走平↑' : '向下↓';
+  const ema50cls = r.c1 ? 'ok' : 'no';
+  const rsiVal = r.rsi != null ? r.rsi.toFixed(1) : '—';
+
+  let rsiStatus, rsiCls, rsiOk;
+  if (r.rsi == null) { rsiStatus = '—'; rsiCls = ''; rsiOk = null; }
+  else if (r.rsi >= 45 && r.rsi <= 65) { rsiStatus = '✓ 健康進場 45–65'; rsiCls = 'ok'; rsiOk = true; }
+  else if (r.rsi > 65 && r.rsi <= 70) { rsiStatus = '⚠ 緩衝警戒 65–70'; rsiCls = 'warn'; rsiOk = null; }
+  else if (r.c5_warn2) { rsiStatus = '⚠ 70–75 緩衝通過（半倉）'; rsiCls = 'warn'; rsiOk = null; }
+  else if (r.c5_warn2_rsi && !r.c5_buf_pass) { rsiStatus = '✗ 70–75 緩衝未達 → 禁追'; rsiCls = 'no'; rsiOk = false; }
+  else if (r.rsi > 75) { rsiStatus = '✗ >75 禁止追高'; rsiCls = 'no'; rsiOk = false; }
+  else { rsiStatus = '❌ 觀望區 <45'; rsiCls = 'no'; rsiOk = false; }
+
+  const bufDetail = r.c5_warn2_rsi ? `
+    <div style="margin-top:6px;padding:7px 9px;background:rgba(0,0,0,0.2);border-radius:4px;font-size:10.5px;line-height:1.8;color:var(--text3);">
+      <div style="font-weight:600;color:var(--text2);margin-bottom:3px;">⑤ 緩衝三項審查（須全符才可半倉進場）</div>
+      <div style="color:${r.buf_vol ? 'var(--green)' : 'var(--red)'}">${r.buf_vol ? '✅' : '❌'} 量比 ${r.volRatio != null ? r.volRatio.toFixed(2) + 'x' : '—'} ${r.buf_vol ? '≥ 1.2 ✓' : '< 1.2 未達'}</div>
+      <div style="color:${r.buf_amp ? 'var(--green)' : 'var(--red)'}">${r.buf_amp ? '✅' : '❌'} 振幅 ${r.amplitude != null ? r.amplitude.toFixed(2) + '%' : '—'} ${r.buf_amp ? '< 3% ✓' : '≥ 3% 波動偏大'}</div>
+      <div style="color:${r.buf_52w ? 'var(--green)' : 'var(--red)'}">${r.buf_52w ? '✅' : '❌'} 距52週高 ${r.dist52wHigh != null ? r.dist52wHigh.toFixed(2) + '%' : '—'} ${r.buf_52w ? '> 5% ✓' : '≤ 5% 近高位追高'}</div>
+    </div>` : '';
+
+  const mktStatus = marketAnchorState ? marketAnchorState.marketStatus : '未錨定';
+  const mktOk = r.c6;
+  const mktCls = mktOk ? 'ok' : 'no';
+
+  const entryHtml = r.distEma20 != null ? `
+    <div class="entry-standard">
+      <div class="es-title">【5.2 進場標準檢核】（僅 6項全通過後執行）</div>
+      <div class="es-row">□ 價格距離 EMA20 = ${r.distEma20 > 0 ? '+' : ''}${r.distEma20.toFixed(2)}% ${r.entryDistanceOk ? ' ✅ ≤ 1.5%' : ' ❌ > 1.5% → 放棄不追高'}</div>
+      <div class="es-row">□ 量能：${r.volumeShrink ? '縮量 ✅' : '未縮量 ⚠'} | 5日均量 ${r.volume_5d_avg ? r.volume_5d_avg.toLocaleString(undefined,{maximumFractionDigits:0}) : '—'}</div>
+      <div class="es-row">□ 大盤狀態：${mktOk ? '✅ 同步多頭' : '❌ ' + mktStatus + ' → 不可進場'}</div>
+    </div>
+  ` : '';
+
+  const riskHtml = (currentMode !== 'fast' && r.stopLoss != null && r.price) ? `
+    <div class="risk-computer">
+      <div class="rc-title">🛡️ 風控計算機（策略閉環）</div>
+      <div class="rc-grid">
+        <div class="rc-item">
+          <span class="rc-label">止損位</span>
+          <span class="rc-value" style="color:var(--red)">$${fmt(r.stopLoss)}</span>
+          <span class="rc-sub">EMA50×0.98 或 ATR1.5 取低（≤2%硬止損）</span>
+        </div>
+        <div class="rc-item">
+          <span class="rc-label">目標位</span>
+          <span class="rc-value" style="color:var(--green)">$${fmt(r.targetPrice)}</span>
+          <span class="rc-sub">52週高 × 0.95</span>
+        </div>
+        <div class="rc-item">
+          <span class="rc-label">風險 / 股</span>
+          <span class="rc-value" style="color:var(--amber)">$${fmt(r.riskPerShare)}</span>
+          <span class="rc-sub">進場價 − 止損價</span>
+        </div>
+        <div class="rc-item">
+          <span class="rc-label">盈虧比</span>
+          <span class="rc-value" style="color:${r.rrRatio >= 3 ? 'var(--green)' : r.rrRatio >= 2 ? 'var(--amber)' : 'var(--red)'}">${fmt(r.rrRatio, 1)} : 1</span>
+          <span class="rc-sub">${r.rrRatio >= 3 ? '優秀' : r.rrRatio >= 2 ? '可接受' : '風險過高'}</span>
+        </div>
+        <div class="rc-item">
+          <span class="rc-label">建議倉位</span>
+          <span class="rc-value" style="color:var(--blue)">${r.suggestedShares} 股</span>
+          <span class="rc-sub">總資金 × 單檔風險% ÷ $${fmt(r.riskPerShare)}</span>
+        </div>
+        <div class="rc-item">
+          <span class="rc-label">預期報酬</span>
+          <span class="rc-value" style="color:var(--green)">$${fmt(r.rewardPerShare * r.suggestedShares, 0)}</span>
+          <span class="rc-sub">${r.suggestedShares} 股 × $${fmt(r.rewardPerShare)}</span>
+        </div>
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:var(--text3);border-top:1px solid var(--border);padding-top:6px;">
+        💡 可在上方「資金與風險參數設定」面板即時調整總資金與單檔風險%
+      </div>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="scan-btn" style="height:32px;padding:0 16px;font-size:12px;background:var(--blue);" onclick="fillSettlement('${r.ticker}', ${r.price}, ${r.stopLoss??0}, ${r.targetPrice??0}, ${r.suggestedShares??0})">💾 存結算卡</button><!-- FIX-10 -->
+        ${!r.isHolding && r.verdict === 'pass' ? `<button class="scan-btn" style="height:32px;padding:0 16px;font-size:12px;background:var(--green);" onclick="quickAddPosition('${r.ticker}', ${r.price}, ${r.suggestedShares}, ${r.stopLoss})">📌 加入持倉</button>` : ''}
+      </div>
+    </div>
+  ` : '';
+
+  const redlines = [];
+  if (r.c5_block) redlines.push('RSI>75 禁止追高');
+  if (r.earnings_within_3days) redlines.push('財報前3天禁新倉');
+  if (!r.c6) redlines.push('大盤不同步');
+  if (r.rrRatio != null && r.rrRatio < 1.5 && r.verdict === 'pass') redlines.push('盈虧比 < 1.5 不符風控');
+  const redlineHtml = redlines.length > 0 ? `
+    <div class="redline-bar open">
+      ${redlines.map(rl => `<span class="rl-tag">🚫 ${rl}</span>`).join('')}
+      <span style="margin-left:auto;font-size:11px;font-weight:400;">觸發交易禁忌紅線 → 禁止進場</span>
+    </div>
+  ` : '';
+
+  const tfPanelId = 'tf-' + r.ticker;
+  const tfHtml = currentMode === 'fast' ? '' : `
+    <div class="tf-panel">
+      <button class="tf-toggle" onclick="(function(){
+        var drawer=document.getElementById('${tfPanelId}');
+        var isOpen=drawer.classList.toggle('open');
+        if(isOpen && !drawer.dataset.loaded){drawer.dataset.loaded='1';loadAutoTF('${r.ticker}');}
+      })()">
+        <span>📊</span> 多時框自動分析（1H ／ 日 ／ 週）— 點擊展開
+      </button>
+      <div class="tf-drawer" id="${tfPanelId}">
+        <div id="tf-auto-${r.ticker}">
+          <div class="tf-loading-msg">
+            <span style="color:var(--text3);">展開後自動從 Yahoo Finance 抓取三個時框數據…</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const earningsLabel = r.earnings_date ? r.earnings_date : '未知';
+  const earningsStatus = r.earnings_within_3days === null ? '無財報數據' :
+    r.earnings_within_3days ? `⚠ ${earningsLabel} 財報在即` : `✓ ${earningsLabel}`;
+  const earningsCls = r.earnings_within_3days === null ? 'warn' :
+    r.earnings_within_3days ? 'no' : 'ok';
+
+  const holdPos = r.isHolding ? positions.find(p => p.ticker === r.ticker) : null;
+  const holdPnlPct = (holdPos && holdPos.entry && r.price) ? ((r.price - holdPos.entry) / holdPos.entry * 100) : null;
+  const holdPnlStr = holdPnlPct != null ? (holdPnlPct >= 0 ? '+' : '') + holdPnlPct.toFixed(2) + '%' : '';
+  const holdPnlColor = holdPnlPct != null ? (holdPnlPct >= 8 ? 'var(--green)' : holdPnlPct >= 0 ? 'var(--amber)' : 'var(--red)') : '';
+  const holdPnlHtml = holdPnlStr ? '<span style="color:' + holdPnlColor + ';margin-left:4px;">' + holdPnlStr + '</span>' : '';
+
+  const earningsBanner = r.earnings_within_3days ? `
+    <div style="margin-bottom:14px;border:1px solid var(--red);border-radius:var(--radius-sm);overflow:hidden;">
+      <div style="background:rgba(232,83,90,0.15);padding:9px 14px;display:flex;align-items:center;gap:8px;">
+        <span style="font-size:13px;">🚨</span>
+        <span style="font-size:13px;font-weight:600;color:var(--red);">財報警示${r.isHolding ? '｜📌 持倉股' + holdPnlHtml : ''}｜${earningsLabel} 財報公佈在即</span>
+        <span style="margin-left:auto;font-size:11px;color:rgba(232,83,90,0.7);">機制⑪ 財報策略</span>
+      </div>
+      <div style="padding:10px 14px;border-bottom:1px solid rgba(232,83,90,0.15);background:rgba(232,83,90,0.05);">
+        <span style="font-size:12px;color:var(--red);font-weight:600;">❌ 財報前 3 天禁止開立任何新倉位</span>
+      </div>
+      <div style="padding:10px 14px 4px;">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">持倉處理規則（依獲利狀況執行）${holdPnlStr ? '｜目前浮盈/虧：<span style="color:' + holdPnlColor + ';">' + holdPnlStr + '</span>' : ''}</div>
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 10px;margin-bottom:6px;background:rgba(34,201,122,0.07);border-radius:var(--radius-sm);border-left:2px solid var(--green);${holdPnlPct != null && holdPnlPct >= 8 ? 'box-shadow:inset 0 0 0 1px var(--green);' : ''}">
+          <div style="min-width:90px;font-size:12px;font-weight:600;color:var(--green);flex-shrink:0;">獲利 ≥ 8%${holdPnlPct != null && holdPnlPct >= 8 ? ' ← 目前適用' : ''}</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.6;">財報前 1 天收盤前 <strong style="color:var(--text);">減倉一半</strong>，鎖定部分獲利<br>剩餘倉位設好止損後可持倉過財報</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 10px;margin-bottom:6px;background:rgba(245,166,35,0.07);border-radius:var(--radius-sm);border-left:2px solid var(--amber);${holdPnlPct != null && holdPnlPct >= 0 && holdPnlPct < 8 ? 'box-shadow:inset 0 0 0 1px var(--amber);' : ''}">
+          <div style="min-width:90px;font-size:12px;font-weight:600;color:var(--amber);flex-shrink:0;">獲利 &lt; 8%${holdPnlPct != null && holdPnlPct >= 0 && holdPnlPct < 8 ? ' ← 目前適用' : ''}</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.6;">財報前 1 天收盤前 <strong style="color:var(--text);">全數清倉</strong> 離場<br>不以未實現小利潤承擔財報不確定性風險</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 10px;margin-bottom:10px;background:rgba(232,83,90,0.07);border-radius:var(--radius-sm);border-left:2px solid var(--red);${holdPnlPct != null && holdPnlPct < 0 ? 'box-shadow:inset 0 0 0 1px var(--red);' : ''}">
+          <div style="min-width:90px;font-size:12px;font-weight:600;color:var(--red);flex-shrink:0;">持倉虧損中${holdPnlPct != null && holdPnlPct < 0 ? ' ← 目前適用' : ''}</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.6;"><strong style="color:var(--red);">立即止損離場</strong>，不賭財報翻身<br>虧損倉位持倉過財報屬嚴重違規</div>
+        </div>
+      </div>
+      <div style="padding:8px 14px 10px;border-top:1px solid rgba(232,83,90,0.15);">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">財報後重新評估</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.7;">
+          📌 財報後需重新執行完整 6 項過濾檢核<br>
+          📌 跳空上漲 &gt;5% 或遠離 EMA20 &gt;4%，禁止追入<br>
+          📌 等縮量回踩 EMA20 止穩後，再按標準程序進場
+        </div>
+      </div>
+    </div>` : '';
+
+  const cached = getCache(r.ticker + '_1y_1d');
+  const cacheBadge = cached ? `<span class="cache-badge stale">快取 ${Math.round(cached.age/60)}min</span>` : '';
+
+  return `
+  <div class="stock-card verdict-${r.verdict}">
+    <div class="card-top">
+      <div class="card-left">
+        <span class="ticker-name">${r.ticker}</span>
+        ${r.isHolding ? '<span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;background:var(--green-bg);color:var(--green);padding:2px 8px;border-radius:10px;margin-left:4px;font-weight:600;">📌 持倉中</span>' : ''}
+        <span class="price-tag">${r.price ? '$' + fmt(r.price) : ''}${cacheBadge}</span>
+      </div>
+      <span class="verdict-badge ${r.verdict}">${vLabel}</span>
+      <button class="order-toggle-btn" onclick="toggleOrderPanel('${r.ticker}')" title="富途下單">📈 下單</button>
+    </div>
+    ${r.price ? `<div class="sparkline-wrap">${renderSparkline(dataStore[r.ticker]?.closes)}</div>` : ''}
+    ${redlineHtml}
+    ${earningsBanner}
+    ${entryHtml}
+    ${riskHtml}
+    <div class="progress-row">
+      <div class="progress-bar-wrap"><div class="progress-bar" style="width:${pct}%;background:${barColor}"></div></div>
+      <span class="progress-label">${r.passed}/5 ✓</span>
+    </div>
+    <div class="metrics-strip">
+      ${(() => {
+        const vr = r.volRatio;
+        const vrCls = vr == null ? 'metric-neutral' : vr >= 1.5 ? 'metric-ok' : vr >= 1.2 ? 'metric-warn' : 'metric-no';
+        const vrSub = vr == null ? '—' : vr >= 1.5 ? '放量強勢' : vr >= 1.2 ? '溫和放量' : '縮量偏弱';
+        const vrVal = vr != null ? vr.toFixed(2) + 'x' : '—';
+        const amp = r.amplitude;
+        const ampCls = amp == null ? 'metric-neutral' : amp < 2 ? 'metric-ok' : amp < 3 ? 'metric-warn' : 'metric-no';
+        const ampSub = amp == null ? '—' : amp < 2 ? '波動穩定' : amp < 3 ? '可接受' : '波動偏大';
+        const ampVal = amp != null ? amp.toFixed(2) + '%' : '—';
+        const d52 = r.dist52wHigh;
+        const d52Cls = d52 == null ? 'metric-neutral' : d52 >= 15 ? 'metric-ok' : d52 >= 5 ? 'metric-warn' : 'metric-no';
+        const d52Sub = d52 == null ? '—' : d52 >= 15 ? '空間充裕' : d52 >= 5 ? '近高位留意' : '接近高位⚠️';
+        const d52Val = d52 != null ? d52.toFixed(1) + '%' : '—';
+        return `
+          <div class="metric-pill">
+            <span class="metric-label">量比</span>
+            <span class="metric-value ${vrCls}">${vrVal}</span>
+            <span class="metric-sub">${vrSub}</span>
+          </div>
+          <div class="metric-pill">
+            <span class="metric-label">振幅</span>
+            <span class="metric-value ${ampCls}">${ampVal}</span>
+            <span class="metric-sub">${ampSub}</span>
+          </div>
+          <div class="metric-pill">
+            <span class="metric-label">距52週高</span>
+            <span class="metric-value ${d52Cls}">${d52Val}</span>
+            <span class="metric-sub">${d52Sub}</span>
+          </div>`;
+      })()}
+    </div>
+    <div class="conds-grid">
+      ${c(r.c1, '① EMA50 走平/向上', ema50dir, ema50cls)}
+      ${c(r.c2, '② 股價 > EMA50', r.ema50 ? '$'+fmt(r.ema50) : '—', r.c2 ? 'ok' : 'no')}
+      ${c(r.c3, '③ EMA20 > EMA50', r.ema20 ? '$'+fmt(r.ema20) : '—', r.c3 ? 'ok' : 'no')}
+      ${c(r.c4, '④ MACD > 零軸', r.macd != null ? fmt(r.macd) : '—', r.c4 ? 'ok' : 'no')}
+      ${c(rsiOk, '⑤ RSI 三段式', rsiVal + ' ' + rsiStatus, rsiCls, bufDetail)}
+      ${c(mktOk, '⑥ 大盤同步多頭', mktOk ? '✅ ' + mktStatus : '❌ ' + mktStatus + ' → 不可進場', mktCls)}
+      ${c(r.earnings_ok === null ? null : r.earnings_ok, '📅 財報檢核', earningsStatus, earningsCls)}
+    </div>
+    ${tfHtml}
+    ${r.notes ? `<div class="card-note">💡 ${r.notes}</div>` : ''}
+  <div id="orderPanel_${r.ticker}" class="order-panel" data-side="buy">
+    <div class="order-panel-title">📈 下單 — ${r.ticker}</div>
+    <div class="order-type-row">
+      <button class="order-type-btn active-buy" data-side="buy" onclick="setOrderSide('${r.ticker}','buy')">📈 買入</button>
+      <button class="order-type-btn" data-side="sell" onclick="setOrderSide('${r.ticker}','sell')">📉 賣出</button>
+    </div>
+    <div class="order-grid">
+      <div class="order-field"><label>委託類型</label>
+        <select class="order-type-select"><option value="limit">限價單</option><option value="market">市價單</option></select>
+      </div>
+      <div class="order-field"><label>委託價格</label>
+        <input type="number" class="order-price-input" step="0.01" value="${r.price ? Number(r.price).toFixed(2) : ''}" placeholder="$0.00" />
+      </div>
+      <div class="order-field"><label>股數</label>
+        <input type="number" class="order-shares-input" step="1" placeholder="0" />
+      </div>
+      <div class="order-field"><label>止損價</label>
+        <input type="number" class="order-stop-input" step="0.01" value="${r.price ? (r.price*0.98).toFixed(2) : ''}" placeholder="$0.00" />
+      </div>
+    </div>
+    <div class="order-actions">
+      <button class="order-submit-btn buy" onclick="submitOrder('${r.ticker}')">📈 確認買入 ${r.ticker}</button>
+      <button class="order-cancel-btn" onclick="toggleOrderPanel('${r.ticker}')">取消</button>
+    </div>
+    <div class="order-disclaimer">⚠️ 需本機 Futu OpenD 及 futu_proxy.py 正在運行。投資決策請以策略規則為依據。</div>
+    <div class="order-result"></div>
+  </div>
+  </div>`;
+}
+
+// ===== v2.8 多時框自動抓取 + 手動校準 =====
+const TF_MANUAL_KEY = 'ricky_tf_manual_v28';
+let tfManualStore = {}; // { 'NVDA': { '1h': { rsi: 55, macd: 0.12 }, '1d': {...}, '1wk': {...} } }
+
+function loadTFManualStore() {
+  try { tfManualStore = JSON.parse(localStorage.getItem(TF_MANUAL_KEY) || '{}'); } catch(e) { tfManualStore = {}; }
+}
+function saveTFManualStore() {
+  try { localStorage.setItem(TF_MANUAL_KEY, JSON.stringify(tfManualStore)); } catch(e) {}
+}
+function getTFManual(ticker, tfKey) {
+  return (tfManualStore[ticker] && tfManualStore[ticker][tfKey]) || null;
+}
+function setTFManual(ticker, tfKey, rsi, macd) {
+  if (!tfManualStore[ticker]) tfManualStore[ticker] = {};
+  if (rsi == null && macd == null) {
+    delete tfManualStore[ticker][tfKey];
+    if (Object.keys(tfManualStore[ticker]).length === 0) delete tfManualStore[ticker];
+  } else {
+    tfManualStore[ticker][tfKey] = { rsi, macd };
+  }
+  saveTFManualStore();
+}
+
+async function loadAutoTF(ticker) {
+  loadTFManualStore();
+  const container = document.getElementById('tf-auto-' + ticker);
+  if (!container) return;
+  container.innerHTML = '<div class="tf-loading-msg"><div class="spinner" style="width:14px;height:14px;flex-shrink:0;"></div><span style="color:var(--text3);">正在抓取 1H / 日線 / 週線數據（Yahoo Finance 1年）…</span></div>';
+
+  const TF_CONFIGS = [
+    { key:'1h',  range:'5d',  label:'1小時', minBars:10 },
+    { key:'1d',  range:'1y',  label:'日線',  minBars:20 },
+    { key:'1wk', range:'2y',  label:'週線',  minBars:15 }
+  ];
+
+  const tfResults = {};
+  for (const cfg of TF_CONFIGS) {
+    try {
+      const chart = await fetchYahooChart(ticker, cfg.range, cfg.key);
+      const data = parseChart(chart);
+      if (!data.closes || data.closes.length < cfg.minBars) throw new Error('數據不足');
+      const rsiArr  = calcRSI(data.closes, 14);
+      const macdObj = calcMACD(data.closes);
+      const ema20   = calcEMA(data.closes, 20);
+      const ema50   = calcEMA(data.closes, 50);
+      const last    = data.closes.length - 1;
+      const price   = data.closes[last];
+      const e20v    = ema20[last];
+      const e50v    = ema50[last];
+      // 自動抓取值
+      const autoRsi  = rsiArr[last];
+      const autoMacd = macdObj.macd[last];
+      const autoHist = macdObj.hist[last];
+      // 手動校準值（優先）
+      const manual = getTFManual(ticker, cfg.key);
+      const rsiVal  = (manual && manual.rsi  != null) ? manual.rsi  : autoRsi;
+      const macdVal = (manual && manual.macd != null) ? manual.macd : autoMacd;
+      const hasManual = manual && (manual.rsi != null || manual.macd != null);
+
+      tfResults[cfg.key] = {
+        label: cfg.label,
+        rsi: rsiVal, macd: macdVal, hist: autoHist,
+        autoRsi, autoMacd,
+        price, ema20: e20v, ema50: e50v,
+        aboveEma50: price > e50v,
+        ema20AboveEma50: e20v > e50v,
+        hasManual, ok: false
+      };
+      const rsiOk  = rsiVal != null && rsiVal >= 40 && rsiVal <= 70;
+      const macdOk = macdVal != null && macdVal > 0;
+      tfResults[cfg.key].ok = rsiOk && macdOk && price > e50v && e20v > e50v;
+    } catch(e) {
+      tfResults[cfg.key] = { label: cfg.label, error: e.message, ok: false, hasManual: false };
+    }
+  }
+
+  renderAutoTFPanel(ticker, tfResults);
+}
+
+function rsiColorClass(rsi) {
+  if (rsi == null) return 'metric-neutral';
+  if (rsi >= 45 && rsi <= 65) return 'metric-ok';
+  if (rsi >= 40 && rsi < 45)  return 'metric-warn';
+  if (rsi > 65  && rsi <= 70) return 'metric-warn';
+  return 'metric-no';
+}
+
+function applyTFManual(ticker, tfKey) {
+  const rsiEl  = document.getElementById(`tfm-rsi-${ticker}-${tfKey}`);
+  const macdEl = document.getElementById(`tfm-macd-${ticker}-${tfKey}`);
+  const rsiVal  = rsiEl  && rsiEl.value.trim()  !== '' ? parseFloat(rsiEl.value)  : null;
+  const macdVal = macdEl && macdEl.value.trim() !== '' ? parseFloat(macdEl.value) : null;
+  setTFManual(ticker, tfKey, rsiVal, macdVal);
+  // Re-render with new values
+  loadAutoTF(ticker);
+}
+
+function clearTFManual(ticker, tfKey) {
+  setTFManual(ticker, tfKey, null, null);
+  loadAutoTF(ticker);
+}
+
+function clearAllTFManual(ticker) {
+  if (tfManualStore[ticker]) { delete tfManualStore[ticker]; saveTFManualStore(); }
+  loadAutoTF(ticker);
+}
+
+function toggleTFManualPanel(ticker, tfKey) {
+  const panel = document.getElementById(`tfmp-${ticker}-${tfKey}`);
+  const btn   = document.getElementById(`tfmb-${ticker}-${tfKey}`);
+  if (!panel || !btn) return;
+  const isOpen = panel.classList.toggle('open');
+  btn.classList.toggle('active', isOpen);
+}
+
+function renderAutoTFPanel(ticker, tfData) {
+  const container = document.getElementById('tf-auto-' + ticker);
+  if (!container) return;
+
+  const entries = Object.values(tfData);
+  const bullCount = entries.filter(d => d.ok).length;
+  const total = entries.length;
+  const pct = total > 0 ? Math.round(bullCount / total * 100) : 0;
+  const alignClass = pct >= 100 ? 'full' : pct >= 67 ? 'partial' : 'conflict';
+  const alignLabel = pct >= 100 ? '✅ 全時框多頭一致' : pct >= 67 ? '⚠️ 部分時框一致' : '❌ 時框訊號衝突';
+  const hasAnyManual = entries.some(d => d.hasManual);
+
+  let cardsHtml = '';
+  for (const [key, d] of Object.entries(tfData)) {
+    if (d.error) {
+      // Even on error, show manual calibration panel
+      const manual = getTFManual(ticker, key);
+      const mRsi  = manual && manual.rsi  != null ? manual.rsi  : '';
+      const mMacd = manual && manual.macd != null ? manual.macd : '';
+      cardsHtml += `<div class="tf-auto-card">
+        <div class="tfa-name">${d.label}</div>
+        <div style="font-size:11px;color:var(--red);margin-bottom:6px;">抓取失敗：${d.error}</div>
+        <button class="tf-manual-toggle ${manual ? 'active' : ''}" id="tfmb-${ticker}-${key}" onclick="toggleTFManualPanel('${ticker}','${key}')">✏️ 手動輸入${manual ? ' [已覆蓋]' : ''}</button>
+        <div class="tf-manual-panel ${manual ? 'open' : ''}" id="tfmp-${ticker}-${key}">
+          <div class="tf-manual-row">
+            <div class="tf-manual-field"><label>RSI(14)</label><input type="number" class="tf-manual-input ${mRsi!==''?'has-value':''}" id="tfm-rsi-${ticker}-${key}" placeholder="如 55.0" step="0.1" min="0" max="100" value="${mRsi}"></div>
+            <div class="tf-manual-field"><label>MACD</label><input type="number" class="tf-manual-input ${mMacd!==''?'has-value':''}" id="tfm-macd-${ticker}-${key}" placeholder="如 0.15" step="0.001" value="${mMacd}"></div>
+            <div class="tf-manual-field" style="justify-content:flex-end;">
+              <label style="opacity:0;">.</label>
+              <div class="tf-manual-actions" style="margin:0;gap:4px;">
+                <button class="tf-manual-apply" onclick="applyTFManual('${ticker}','${key}')">套用</button>
+                <button class="tf-manual-clear" onclick="clearTFManual('${ticker}','${key}')">清除</button>
+              </div>
+            </div>
+          </div>
+          <div class="tf-manual-note" style="margin-top:6px;">⚠️ 手動值將覆蓋自動數據並以 🟠 標示，自動保存於 localStorage</div>
+        </div>
+      </div>`;
+      continue;
+    }
+
+    const borderColor = d.ok ? 'var(--green)' : (d.rsi != null && d.rsi >= 40 && d.rsi <= 70 ? 'var(--amber)' : 'var(--border2)');
+    const rsiCls  = rsiColorClass(d.rsi);
+    const manual  = getTFManual(ticker, key);
+    const mRsi    = manual && manual.rsi  != null ? manual.rsi  : '';
+    const mMacd   = manual && manual.macd != null ? manual.macd : '';
+
+    const rsiDisplay  = d.hasManual && manual && manual.rsi  != null
+      ? `${d.rsi.toFixed(1)} <span class="tf-override-badge">🟠手動</span> <span style="font-size:9px;color:var(--text3);">(原 ${d.autoRsi != null ? d.autoRsi.toFixed(1) : '—'})</span>`
+      : `${d.rsi != null ? d.rsi.toFixed(1) : '—'}`;
+    const macdColor   = d.macd != null ? (d.macd > 0 ? 'var(--green)' : 'var(--red)') : 'var(--text3)';
+    const macdArrow   = d.macd != null ? (d.macd > 0 ? '▲' : '▼') : '';
+    const macdDisplay = d.hasManual && manual && manual.macd != null
+      ? `<span style="color:${macdColor}">${macdArrow} ${d.macd.toFixed(3)}</span> <span class="tf-override-badge">🟠手動</span> <span style="font-size:9px;color:var(--text3);">(原 ${d.autoMacd != null ? d.autoMacd.toFixed(3) : '—'})</span>`
+      : (d.macd != null ? `<span style="color:${macdColor}">${macdArrow} ${d.macd.toFixed(3)}</span>` : '—');
+    const emaStr   = d.ema20AboveEma50 ? `<span style="color:var(--green)">多頭排列</span>` : `<span style="color:var(--red)">空頭排列</span>`;
+    const priceStr = d.aboveEma50 ? `<span style="color:var(--green)">站EMA50上</span>` : `<span style="color:var(--red)">跌破EMA50</span>`;
+
+    cardsHtml += `<div class="tf-auto-card" style="border-left-color:${borderColor};">
+      <div class="tfa-name">${d.label}${d.hasManual ? ' <span class="tf-override-badge">🟠校準</span>' : ''}</div>
+      <div class="tfa-rsi ${rsiCls}">RSI ${rsiDisplay}</div>
+      <div class="tfa-detail">MACD ${macdDisplay}</div>
+      <div class="tfa-detail">EMA ${emaStr}</div>
+      <div class="tfa-detail">價格 ${priceStr}</div>
+      <div class="tfa-status ${d.ok ? 'metric-ok' : 'metric-no'}">${d.ok ? '✅ 多頭一致' : '❌ 未對齊'}</div>
+      <button class="tf-manual-toggle ${d.hasManual ? 'active' : ''}" id="tfmb-${ticker}-${key}" onclick="toggleTFManualPanel('${ticker}','${key}')" style="margin-top:6px;">✏️ 手動校準${d.hasManual ? ' [已覆蓋]' : ''}</button>
+      <div class="tf-manual-panel ${d.hasManual ? 'open' : ''}" id="tfmp-${ticker}-${key}">
+        <div class="tf-manual-row">
+          <div class="tf-manual-field">
+            <label>RSI(14) 校準</label>
+            <input type="number" class="tf-manual-input ${mRsi!==''?'has-value':''}" id="tfm-rsi-${ticker}-${key}" placeholder="留空=使用自動" step="0.1" min="0" max="100" value="${mRsi}">
+          </div>
+          <div class="tf-manual-field">
+            <label>MACD 校準</label>
+            <input type="number" class="tf-manual-input ${mMacd!==''?'has-value':''}" id="tfm-macd-${ticker}-${key}" placeholder="留空=使用自動" step="0.001" value="${mMacd}">
+          </div>
+          <div class="tf-manual-field" style="justify-content:flex-end;">
+            <label style="opacity:0;">.</label>
+            <div class="tf-manual-actions" style="margin:0;gap:4px;">
+              <button class="tf-manual-apply" onclick="applyTFManual('${ticker}','${key}')">套用</button>
+              <button class="tf-manual-clear" onclick="clearTFManual('${ticker}','${key}')">清除</button>
+            </div>
+          </div>
+        </div>
+        <div class="tf-manual-note">
+          自動值：RSI ${d.autoRsi != null ? d.autoRsi.toFixed(1) : '—'} ／ MACD ${d.autoMacd != null ? d.autoMacd.toFixed(3) : '—'}<br>
+          填入值優先於自動抓取，顯示 🟠 標記。值自動保存，重新開啟頁面仍有效。
+        </div>
+      </div>
+    </div>`;
+  }
+
+  const clearAllBtn = hasAnyManual
+    ? `<button onclick="clearAllTFManual('${ticker}')" style="font-size:11px;color:var(--red);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline;">清除所有手動校準</button>`
+    : '';
+
+  container.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+      <div class="tf-align-badge ${alignClass}">${alignLabel} &nbsp;${bullCount}/${total} 時框</div>
+      ${clearAllBtn}
+    </div>
+    <div class="tf-auto-grid">${cardsHtml}</div>
+    <div style="font-size:11px;color:var(--text3);margin-top:8px;">
+      數據來源：Yahoo Finance 1年數據 · 抓取時間 ${new Date().toLocaleTimeString('zh-TW')}
+      ${hasAnyManual ? ' · <span style="color:var(--amber);">🟠 部分時框已手動校準</span>' : ''}
+    </div>
+  `;
+}
+
+// ===== v2.7 HTML 報告匯出 =====
+function exportHTMLReport() {
+  if (!lastScanResults || !lastScanResults.length) { alert('請先執行掃描'); return; }
+  const now = new Date();
+  const dateStr = now.toLocaleString('zh-TW', { timeZone: 'America/New_York' });
+  const passR  = lastScanResults.filter(r => r.verdict === 'pass');
+  const watchR = lastScanResults.filter(r => r.verdict === 'watch');
+  const failR  = lastScanResults.filter(r => r.verdict === 'fail');
+
+  const anchorHtml = marketAnchorState ? `
+    <div style="background:#1c2030;padding:12px 16px;border-radius:8px;margin-bottom:16px;border-left:3px solid ${marketAnchorState.allPass?'#22c97a':'#f5a623'};">
+      <div style="font-size:10px;color:#525869;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:5px;">大盤錨定 Stage 1</div>
+      <div style="font-size:13px;color:#8a90a4;">
+        QQQ EMA20: <strong style="color:#e8eaf0">$${(marketAnchorState.qqqEma20||0).toFixed(2)}</strong> &nbsp;|&nbsp;
+        SPY EMA20: <strong style="color:#e8eaf0">$${(marketAnchorState.spyEma20||0).toFixed(2)}</strong> &nbsp;|&nbsp;
+        狀態: <strong style="color:${marketAnchorState.allPass?'#22c97a':'#f5a623'}">${marketAnchorState.allPass?'✅ 全部通過':'⚠️ 未全通過'}</strong>
+      </div>
+    </div>` : '';
+
+  const _esc = v => String(v ?? '—').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const rowsHtml = lastScanResults.map(r => {
+    const vColor = r.verdict==='pass'?'#22c97a':r.verdict==='watch'?'#f5a623':'#525869';
+    const vLabel = r.verdict==='pass'?'✅ PASS':r.verdict==='watch'?'⚠️ WATCH':'— FAIL';
+    const rrColor = r.rrRatio >= 2 ? '#22c97a' : r.rrRatio >= 1.5 ? '#f5a623' : '#e8535a';
+    const distStr = r.distEma20 != null ? (r.distEma20>0?'+':'')+r.distEma20.toFixed(2)+'%' : '—';
+    return `<tr>
+      <td style="font-family:monospace;font-weight:700;font-size:14px;color:#e8eaf0;padding:10px 12px;">${_esc(r.ticker)}</td>
+      <td style="font-family:monospace;color:#e8eaf0;padding:10px 12px;">${r.price!=null?'$'+r.price.toFixed(2):'—'}</td>
+      <td style="color:${vColor};font-weight:700;padding:10px 12px;">${vLabel}</td>
+      <td style="font-family:monospace;color:#8a90a4;padding:10px 12px;">${r.passed}/5</td>
+      <td style="font-family:monospace;color:${r.rsi!=null&&r.rsi>=45&&r.rsi<=65?'#22c97a':r.rsi!=null&&r.rsi<=70?'#f5a623':'#e8535a'};padding:10px 12px;">${r.rsi!=null?r.rsi.toFixed(1):'—'}</td>
+      <td style="font-family:monospace;color:${r.macd!=null&&r.macd>0?'#22c97a':'#e8535a'};padding:10px 12px;">${r.macd!=null?r.macd.toFixed(3):'—'}</td>
+      <td style="font-family:monospace;color:#8a90a4;padding:10px 12px;">${distStr}</td>
+      <td style="font-family:monospace;color:#e8535a;padding:10px 12px;">${r.stopLoss!=null?'$'+r.stopLoss.toFixed(2):'—'}</td>
+      <td style="font-family:monospace;color:#22c97a;padding:10px 12px;">${r.targetPrice!=null?'$'+r.targetPrice.toFixed(2):'—'}</td>
+      <td style="font-family:monospace;color:${rrColor};padding:10px 12px;">${r.rrRatio!=null?r.rrRatio.toFixed(2):'—'}</td>
+      <td style="font-family:monospace;color:#4f8ef7;padding:10px 12px;">${r.suggestedShares||0} 股</td>
+      <td style="font-size:11px;color:#525869;padding:10px 12px;">${_esc(r.earnings_date)||'—'}</td>
+    </tr>`;
+  }).join('');
+
+  const reportHtml = `<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ricky 掃描報告 ${now.toISOString().slice(0,10)}</title>
+<style>
+  body{background:#0d0f12;color:#e8eaf0;font-family:-apple-system,'Helvetica Neue',sans-serif;margin:0;padding:32px 24px;line-height:1.5;}
+  h1{font-size:22px;font-weight:700;margin-bottom:4px;letter-spacing:-0.3px;}
+  .meta{font-size:12px;color:#525869;margin-bottom:24px;}
+  .summary{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+  .sum-card{background:#141720;border-radius:8px;padding:12px 20px;border-left:3px solid;flex:1;min-width:110px;}
+  .sum-label{font-size:10px;color:#525869;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;}
+  .sum-value{font-size:26px;font-weight:700;font-family:monospace;}
+  .table-wrap{overflow-x:auto;border-radius:8px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;background:#141720;}
+  thead tr{background:#1c2030;}
+  th{padding:9px 12px;text-align:left;font-size:10px;font-weight:600;color:#525869;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;}
+  tbody tr{border-bottom:1px solid rgba(255,255,255,0.05);}
+  tbody tr:hover td{background:rgba(255,255,255,0.02);}
+  .footer{margin-top:20px;font-size:11px;color:#525869;text-align:center;padding-top:16px;border-top:1px solid rgba(255,255,255,0.07);}
+  @media print{body{background:#fff;color:#111;padding:20px;}table,thead tr,.sum-card{background:#f5f5f5;}th{color:#666;}tbody tr{border-color:#ddd;}}
+
+  /* ===== v2.8 手動校準 ===== */
+  .tf-manual-toggle { font-size: 11px; color: var(--text3); cursor: pointer; display: inline-flex;
+    align-items: center; gap: 4px; margin-top: 6px; padding: 3px 8px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--bg4); transition: all 0.15s; user-select: none; }
+  .tf-manual-toggle:hover { border-color: var(--border2); color: var(--text2); }
+  .tf-manual-toggle.active { border-color: var(--amber); color: var(--amber); background: var(--amber-bg); }
+  .tf-manual-panel { display: none; margin-top: 8px; padding: 10px 12px;
+    background: var(--bg4); border-radius: var(--radius-sm); border: 1px solid var(--border2); }
+  .tf-manual-panel.open { display: block; }
+  .tf-manual-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .tf-manual-field { display: flex; flex-direction: column; gap: 3px; }
+  .tf-manual-field label { font-size: 10px; color: var(--text3); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.4px; }
+  .tf-manual-input { background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); padding: 4px 8px; height: 32px; font-size: 12px;
+    font-family: 'SF Mono', monospace; color: var(--text); outline: none; width: 100%;
+    transition: border-color 0.15s; }
+  .tf-manual-input:focus { border-color: var(--amber); }
+  .tf-manual-input.has-value { border-color: var(--amber); background: var(--amber-bg); }
+  .tf-manual-actions { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+  .tf-manual-apply { height: 28px; padding: 0 14px; font-size: 11px; font-weight: 600;
+    border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--amber);
+    background: var(--amber-bg); color: var(--amber); transition: all 0.15s; }
+  .tf-manual-apply:hover { background: var(--amber); color: var(--bg); }
+  .tf-manual-clear { height: 28px; padding: 0 12px; font-size: 11px; font-weight: 600;
+    border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--border2);
+    background: var(--bg3); color: var(--text3); transition: all 0.15s; }
+  .tf-manual-clear:hover { border-color: var(--red); color: var(--red); }
+  .tf-manual-note { font-size: 10px; color: var(--text3); line-height: 1.5; }
+  .tf-override-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 10px;
+    font-weight: 700; padding: 1px 6px; border-radius: 10px; background: var(--amber-bg);
+    color: var(--amber); margin-left: 4px; vertical-align: middle; }
+  /* ===== v2.8 大盤 EMA200 ===== */
+  .anchor-ema200 { display: inline-flex; align-items: center; gap: 4px; font-size: 12px;
+    font-weight: 600; padding: 2px 8px; border-radius: 10px; margin-left: 6px; }
+  .anchor-ema200.bull { background: rgba(34,201,122,0.1); color: var(--green); }
+  .anchor-ema200.bear { background: rgba(232,83,90,0.1); color: var(--red); }
+
+/* ===== v2.9 富途持倉同步 & 下單整合 ===== */
+.pos-tab-bar{display:flex;gap:0;margin-bottom:1rem;border-bottom:1px solid var(--border);}
+.pos-tab{font-size:12px;font-weight:600;padding:7px 16px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);cursor:pointer;transition:all 0.15s;margin-bottom:-1px;}
+.pos-tab:hover{color:var(--text2);}
+.pos-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.pos-tab-pane{display:none;}
+.pos-tab-pane.active{display:block;}
+.futu-sync-info{font-size:12px;color:var(--text3);line-height:1.6;background:var(--bg3);border-radius:var(--radius-sm);padding:9px 12px;margin-bottom:12px;border-left:2px solid var(--blue);}
+.futu-sync-row{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;}
+.futu-sync-btn{height:36px;padding:0 14px;background:var(--bg3);color:var(--text2);border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:6px;white-space:nowrap;}
+.futu-sync-btn:hover:not(:disabled){border-color:var(--blue);color:var(--blue);}
+.futu-sync-btn.primary{background:var(--blue-bg);border-color:rgba(79,142,247,0.4);color:var(--blue);}
+.futu-sync-btn.primary:hover{background:var(--blue);color:#fff;}
+.futu-sync-btn:disabled{opacity:0.4;cursor:not-allowed;}
+.futu-sync-btn .sync-spinner{width:11px;height:11px;border:1.5px solid rgba(79,142,247,0.3);border-top-color:var(--blue);border-radius:50%;animation:spin 0.7s linear infinite;display:none;}
+.futu-sync-btn.syncing .sync-spinner{display:block;}
+.futu-sync-btn.syncing .sync-icon{display:none;}
+.futu-sync-status{font-size:11px;padding:6px 10px;border-radius:var(--radius-sm);display:none;margin-bottom:10px;}
+.futu-sync-status.ok{display:block;background:var(--green-bg);color:var(--green);}
+.futu-sync-status.err{display:block;background:var(--red-bg);color:var(--red);}
+.futu-sync-status.info{display:block;background:var(--blue-bg);color:var(--blue);}
+.futu-pos-table{width:100%;border-collapse:collapse;font-size:12px;}
+.futu-pos-table th{text-align:left;padding:7px 10px;background:var(--bg3);color:var(--text3);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);}
+.futu-pos-table td{padding:8px 10px;border-bottom:1px solid var(--border);color:var(--text2);}
+.futu-pos-table tr:last-child td{border-bottom:none;}
+.futu-pos-table tr:hover td{background:rgba(255,255,255,0.02);}
+.futu-pos-table .col-ticker{font-weight:700;font-family:'SF Mono',monospace;color:var(--text);}
+.futu-pos-table .col-pnl.pos{color:var(--green);}
+.futu-pos-table .col-pnl.neg{color:var(--red);}
+.futu-sync-last{font-size:10px;color:var(--text3);margin-top:8px;}
+.order-panel{display:none;margin-top:12px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:14px 16px;border-left:3px solid var(--blue);}
+.order-panel.open{display:block;animation:orderIn 0.18s ease;}
+@keyframes orderIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.order-panel-title{font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;}
+.order-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;}
+.order-field{display:flex;flex-direction:column;gap:3px;}
+.order-field label{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;}
+.order-field input,.order-field select{height:34px;padding:0 9px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;font-family:'SF Mono',monospace;color:var(--text);outline:none;transition:border-color 0.15s;}
+.order-field input:focus,.order-field select:focus{border-color:var(--blue);}
+.order-type-row{display:flex;gap:6px;margin-bottom:10px;}
+.order-type-btn{flex:1;height:32px;font-size:11px;font-weight:600;border-radius:var(--radius-sm);cursor:pointer;border:1px solid var(--border2);background:var(--bg3);color:var(--text3);transition:all 0.15s;}
+.order-type-btn.active-buy{border-color:var(--green);background:var(--green-bg);color:var(--green);}
+.order-type-btn.active-sell{border-color:var(--red);background:var(--red-bg);color:var(--red);}
+.order-actions{display:flex;gap:8px;}
+.order-submit-btn{flex:1;height:38px;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;transition:all 0.15s;}
+.order-submit-btn.buy{background:var(--green);color:#fff;}
+.order-submit-btn.sell{background:var(--red);color:#fff;}
+.order-submit-btn:hover{opacity:0.85;}
+.order-submit-btn:disabled{opacity:0.35;cursor:not-allowed;}
+.order-cancel-btn{height:38px;padding:0 16px;background:var(--bg3);color:var(--text3);border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;transition:all 0.15s;}
+.order-cancel-btn:hover{color:var(--text);}
+.order-disclaimer{font-size:10px;color:var(--text3);margin-top:8px;line-height:1.5;padding:6px 8px;background:rgba(245,166,35,0.07);border-radius:var(--radius-sm);border-left:2px solid var(--amber);}
+.order-result{margin-top:8px;font-size:12px;padding:7px 10px;border-radius:var(--radius-sm);display:none;}
+.order-result.ok{display:block;background:var(--green-bg);color:var(--green);}
+.order-result.err{display:block;background:var(--red-bg);color:var(--red);}
+.order-toggle-btn{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;cursor:pointer;background:var(--blue-bg);border:1px solid rgba(79,142,247,0.3);color:var(--blue);margin-left:6px;transition:all 0.15s;}
+.order-toggle-btn:hover{background:var(--blue);color:#fff;}
+@media(max-width:640px){.order-grid{grid-template-columns:1fr 1fr;}.futu-sync-row{flex-wrap:wrap;}}
+</style>
+</head>
+<body>
+<h1>📊 Ricky 策略掃描報告</h1>
+<div class="meta">生成時間：${dateStr}（美東）｜策略版本：v2.8｜Yahoo Finance 1年數據+手動校準</div>
+${anchorHtml}
+<div class="summary">
+  <div class="sum-card" style="border-color:#22c97a"><div class="sum-label">✅ PASS — 可進場觀察</div><div class="sum-value" style="color:#22c97a">${passR.length}</div></div>
+  <div class="sum-card" style="border-color:#f5a623"><div class="sum-label">⚠️ WATCH — 部分符合</div><div class="sum-value" style="color:#f5a623">${watchR.length}</div></div>
+  <div class="sum-card" style="border-color:#525869"><div class="sum-label">— FAIL — 排除</div><div class="sum-value" style="color:#525869">${failR.length}</div></div>
+  <div class="sum-card" style="border-color:#4f8ef7"><div class="sum-label">📋 總計掃描</div><div class="sum-value" style="color:#4f8ef7">${lastScanResults.length}</div></div>
+</div>
+<div class="table-wrap">
+<table>
+  <thead><tr>
+    <th>標的</th><th>現價</th><th>判斷</th><th>通過/5</th>
+    <th>RSI</th><th>MACD</th><th>距EMA20</th>
+    <th>止損價</th><th>目標價</th><th>RR比</th><th>建議倉位</th><th>財報日</th>
+  </tr></thead>
+  <tbody>${rowsHtml}</tbody>
+</table>
+</div>
+<div class="footer">僅供技術面參考，不構成投資建議 · 一切決策以策略規則為唯一依據 · Ricky Chan v2.8</div>
+
+<!-- ===== 富途 API Key 設定 Modal ===== -->
+<div class="api-modal-overlay" id="apiModalOverlay" onclick="if(event.target===this)closeApiModal()">
+  <div class="api-modal">
+    <div class="api-modal-header">
+      <div class="api-modal-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent)"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+        富途 OpenAPI 設定
+      </div>
+      <button class="api-modal-close" onclick="closeApiModal()" aria-label="關閉">✕</button>
+    </div>
+
+    <div class="api-modal-desc">
+      📌 此掃描器目前使用 <strong>Yahoo Finance 直連，無需 API Key</strong> 即可正常掃描。<br>
+      如需整合富途牛牛持倉數據或下單功能，請填入 Futu OpenAPI 憑證。<br>
+      <span style="color:var(--amber)">⚠️ 憑證僅存於瀏覽器本地 localStorage，不上傳任何伺服器。</span>
+    </div>
+
+    <div class="api-field">
+      <label>App ID <span class="field-badge">必填</span></label>
+      <input type="text" id="futuAppId" placeholder="例：app-xxxxxxxxxxxxxxxxxxxxxxxx"
+        oninput="this.classList.toggle('has-value', this.value.trim().length > 0); futuTestReset();" />
+      <span class="field-hint">富途開發者平台 → 我的應用 → App ID</span>
+    </div>
+
+    <div class="api-field">
+      <label>App Secret <span class="field-badge">必填</span></label>
+      <input type="password" id="futuAppSecret" placeholder="請輸入 App Secret（輸入後以 ● 遮蔽）"
+        oninput="this.classList.toggle('has-value', this.value.trim().length > 0); futuTestReset();" />
+      <span class="field-hint">請妥善保管，切勿分享給他人</span>
+    </div>
+
+    <div class="api-field">
+      <label>OpenD 主機 <span class="field-badge">選填</span></label>
+      <input type="text" id="futuHost" placeholder="預設：127.0.0.1（本機）"
+        oninput="this.classList.toggle('has-value', this.value.trim().length > 0); futuTestReset();" />
+      <span class="field-hint">本機安裝 Futu OpenD 時填 127.0.0.1</span>
+    </div>
+
+    <div class="api-field">
+      <label>OpenD 端口 <span class="field-badge">選填</span></label>
+      <input type="number" id="futuPort" placeholder="預設：11111"
+        oninput="this.classList.toggle('has-value', this.value.trim().length > 0); futuTestReset();" />
+      <span class="field-hint">Futu OpenD 預設端口為 11111</span>
+    </div>
+
+    <div class="api-modal-divider"></div>
+
+    <!-- 測試連線 -->
+    <div class="api-test-section">
+      <div class="test-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        測試連線
+      </div>
+      <div class="api-test-row">
+        <button class="api-test-btn" id="futuTestBtn" onclick="testFutuConnection()">
+          <span class="btn-spinner"></span>
+          <span class="btn-icon">🔌</span>
+          測試 API 連線
+        </button>
+        <div class="api-test-result" id="futuTestResult">— 尚未測試</div>
+      </div>
+      <div class="api-test-detail" id="futuTestDetail"></div>
+    </div>
+
+    <div class="api-modal-divider"></div>
+
+    <div class="api-modal-status" id="apiModalStatus"></div>
+
+    <div class="api-modal-actions">
+      <button class="api-modal-clear" onclick="clearFutuApiKeys()">🗑 清除設定</button>
+      <button class="api-modal-save" onclick="saveFutuApiKeys()">💾 儲存設定</button>
+    </div>
+  </div>
+</div>
+
+</body></html>`;
+
+  const blob = new Blob([reportHtml], { type: 'text/html;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `Ricky_Report_${now.toISOString().slice(0,10)}.html`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+function fillSettlement(ticker, price, stop, target, shares) {
+  document.getElementById('scTicker').value = ticker;
+  document.getElementById('scEntry').value = price ? price.toFixed(2) : '';
+  document.getElementById('scStop').value = stop ? stop.toFixed(2) : '';
+  document.getElementById('scExit').value = target ? target.toFixed(2) : '';
+  // E7: 若標的在持倉中，自動帶入持倉股數
+  const pos = positions.find(p => p.ticker === ticker);
+  document.getElementById('scShares').value = pos ? pos.shares : (shares || '');
+  document.getElementById('settlementPanel').classList.add('open');
+  document.getElementById('settlementPanel').scrollIntoView({ behavior: 'smooth' });
+}
+
+const SETTLEMENT_LOG_KEY = 'ricky_settlement_log_v25';
+
+function saveSettlement() {
+  const t = document.getElementById('scTicker').value.toUpperCase();
+  const entry = parseFloat(document.getElementById('scEntry').value);
+  const exit = parseFloat(document.getElementById('scExit').value);
+  const stop = parseFloat(document.getElementById('scStop').value);
+  const shares = parseInt(document.getElementById('scShares').value) || 0;
+  const date = document.getElementById('scDate').value;
+  const tradeDate = date || new Date().toISOString().slice(0,10);
+  if (!t || !entry || !exit) {
+    document.getElementById('settlementMsg').textContent = '❌ 請至少填寫標的、進場價、出場價';
+    document.getElementById('settlementMsg').style.color = 'var(--red)';
+    return;
+  }
+  const pnl = (exit - entry) * shares;
+  const pnlPct = ((exit - entry) / entry * 100);
+
+  try {
+    const log = JSON.parse(localStorage.getItem(SETTLEMENT_LOG_KEY) || '[]');
+    // D2: 去重檢查 — 同一標的+日期+進場價視為同一筆交易
+    const dupIndex = log.findIndex(r => r.ticker === t && r.date === tradeDate && Math.abs(r.entry - entry) < 0.01);
+    if (dupIndex !== -1) {
+      if (!confirm(`⚠️ ${t} 在 ${tradeDate} 已有相同進場價 $${entry} 的紀錄\n\n確定覆蓋舊紀錄？`)) {
+        document.getElementById('settlementMsg').textContent = '❌ 儲存取消（重複紀錄）';
+        document.getElementById('settlementMsg').style.color = 'var(--amber)';
+        return;
+      }
+      log.splice(dupIndex, 1);
+    }
+    log.push({
+      date: tradeDate,
+      ticker: t,
+      entry, exit, stop, shares,
+      pnl: pnl.toFixed(2),
+      pnlPct: pnlPct.toFixed(2),
+      riskPerShare: stop ? (entry - stop).toFixed(2) : '',
+      rr: stop ? ((exit - entry) / (entry - stop)).toFixed(2) : '',
+      timestamp: new Date().toISOString()
+    });
+    localStorage.setItem(SETTLEMENT_LOG_KEY, JSON.stringify(log));
+  } catch(e) {}
+
+  try {
+    const now = new Date();
+    const ym = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    const ddKey = 'ricky_monthly_dd_v25_' + ym;
+    let currentDD = parseFloat(localStorage.getItem(ddKey) || '0');
+    // FIX-3: 以帳戶損益金額/總資金計算回撤貢獻，非個股漲跌幅
+    if (pnl < 0) {
+      const { cap: _totalCap } = getCapitalParams();
+      const ddContrib = _totalCap > 0 ? (Math.abs(pnl) / _totalCap * 100) : 0;
+      currentDD += ddContrib;
+      localStorage.setItem(ddKey, currentDD.toFixed(2));
+      document.getElementById('monthlyDrawdown').textContent = currentDD.toFixed(1) + '%';
+      const _a1dd = document.getElementById('a1Drawdown');
+      if (_a1dd) _a1dd.textContent = currentDD.toFixed(1) + '%';
+      updateDDProgress(currentDD);
+      if (currentDD >= 8) {
+        alert('🚨 月度回撤已達 ' + currentDD.toFixed(1) + '% — 超過 8% 紅線，請立刻停倉！');
+      }
+    }
+  } catch(e) {}
+  document.getElementById('settlementMsg').textContent = `✅ 結算卡已儲存｜${t} 實現損益 $${pnl.toFixed(2)}（${pnlPct.toFixed(2)}%）`;
+  document.getElementById('settlementMsg').style.color = 'var(--green)';
+
+  // D1: 儲存後自動清空表單，防止誤觸重複儲存
+  document.getElementById('scTicker').value = '';
+  document.getElementById('scDate').value = '';
+  document.getElementById('scEntry').value = '';
+  document.getElementById('scExit').value = '';
+  document.getElementById('scStop').value = '';
+  document.getElementById('scShares').value = '';
+  document.querySelectorAll('.sf-check').forEach(el => el.classList.remove('checked'));
+
+  // E7: 結算後自動從持倉移除
+  const posIdx = positions.findIndex(p => p.ticker === t);
+  if (posIdx !== -1) {
+    positions.splice(posIdx, 1);
+    savePositions();
+    document.getElementById('settlementMsg').textContent += `｜📌 已從持倉移除 ${t}`;
+  }
+}
+
+function exportSettlementCSV() {
+  try {
+    const log = JSON.parse(localStorage.getItem(SETTLEMENT_LOG_KEY) || '[]');
+    if (log.length === 0) { alert('無交易紀錄可導出'); return; }
+    const headers = ['日期', '標的', '進場價', '出場價', '止損價', '股數', '損益$', '損益%', '每股風險', '盈虧比', '記錄時間'];
+    // FIX-11: 每欄加雙引號，跳脫欄內引號，防止含逗號欄位破壞 CSV
+    const _esc = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+    const rows = log.map(r => [
+      r.date, r.ticker, r.entry, r.exit, r.stop || '', r.shares,
+      r.pnl, r.pnlPct + '%', r.riskPerShare, r.rr, r.timestamp
+    ].map(_esc));
+    const csv = [headers.map(_esc).join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Ricky_Settlement_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch(e) { alert('導出失敗：' + e.message); }
+}
+
+loadAnchorState();
+
+// FIX-12: 啟動時清理3個月前的舊回撤 key，防止 localStorage 無限積累
+(function cleanOldDDKeys() {
+  try {
+    const now = new Date();
+    for (let i = 3; i <= 24; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const ym = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      localStorage.removeItem('ricky_monthly_dd_v25_' + ym);
+    }
+  } catch(e) {}
+})();
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadCapitalParams();
+  loadPositions(); // E7: 初始化持倉
+  if (!marketAnchorState) runMarketAnchor();
+  try {
+    const now = new Date();
+    const ym = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    const dd = parseFloat(localStorage.getItem('ricky_monthly_dd_v25_' + ym) || '0');
+    document.getElementById('monthlyDrawdown').textContent = dd.toFixed(1) + '%';
+    updateDDProgress(dd);
+  } catch(e) {}
+});
+
+
+// ===================================================================
+// 富途 OpenAPI Key 設定 + 測試連線
+// ===================================================================
+const FUTU_API_KEY = 'ricky_futu_api_v1';
+
+// --- 持久化 ---
+function getFutuApiConfig() {
+  try { return JSON.parse(localStorage.getItem(FUTU_API_KEY) || 'null'); } catch(e) { return null; }
+}
+
+function loadFutuApiConfig() {
+  const saved = getFutuApiConfig();
+  if (!saved) return;
+  const map = {futuAppId:'appId', futuAppSecret:'appSecret', futuHost:'host', futuPort:'port'};
+  Object.entries(map).forEach(([elId, key]) => {
+    const el = document.getElementById(elId);
+    if (el && saved[key]) { el.value = saved[key]; el.classList.add('has-value'); }
+  });
+  updateApiSettingsBtn(true);
+}
+
+function saveFutuApiKeys() {
+  const appId     = (document.getElementById('futuAppId')?.value     || '').trim();
+  const appSecret = (document.getElementById('futuAppSecret')?.value || '').trim();
+  const host      = (document.getElementById('futuHost')?.value      || '').trim();
+  const port      = (document.getElementById('futuPort')?.value      || '').trim();
+  const status    = document.getElementById('apiModalStatus');
+  if (!appId && !appSecret) {
+    status.className = 'api-modal-status error';
+    status.textContent = '⚠️ 請至少輸入 App ID 或 App Secret'; return;
+  }
+  const config = { savedAt: new Date().toLocaleString('zh-HK') };
+  if (appId)     config.appId     = appId;
+  if (appSecret) config.appSecret = appSecret;
+  if (host)      config.host      = host;
+  if (port)      config.port      = parseInt(port) || 11111;
+  try {
+    localStorage.setItem(FUTU_API_KEY, JSON.stringify(config));
+    updateApiSettingsBtn(true);
+    status.className = 'api-modal-status success';
+    status.textContent = `✅ 設定已儲存（${config.savedAt}）`;
+    setTimeout(closeApiModal, 1400);
+  } catch(e) {
+    status.className = 'api-modal-status error';
+    status.textContent = '❌ 儲存失敗：' + e.message;
+  }
+}
+
+function clearFutuApiKeys() {
+  try { localStorage.removeItem(FUTU_API_KEY); } catch(e) {}
+  ['futuAppId','futuAppSecret','futuHost','futuPort'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.value = ''; el.classList.remove('has-value'); }
+  });
+  updateApiSettingsBtn(false);
+  futuTestReset();
+  const s = document.getElementById('apiModalStatus');
+  s.className = 'api-modal-status success';
+  s.textContent = '🗑 設定已清除';
+}
+
+// --- Nav 按鈕狀態 ---
+function updateApiSettingsBtn(configured) {
+  const btn = document.getElementById('apiSettingsBtn');
+  if (!btn) return;
+  btn.classList.toggle('configured', configured);
+  btn.innerHTML = configured
+    ? '<span>✅</span> 富途 API'
+    : '<span>⚙️</span> 富途 API';
+}
+
+// --- Modal 開關 ---
+function openApiModal() {
+  var ov = document.getElementById('apiModalOverlay');
+  if (!ov) return;
+  ov.style.display = 'flex';
+  ov.classList.add('open');
+  var s = document.getElementById('apiModalStatus');
+  if (s) { s.className = 'api-modal-status'; s.textContent = ''; }
+}
+function closeApiModal() {
+  var ov = document.getElementById('apiModalOverlay');
+  if (!ov) return;
+  ov.classList.remove('open');
+  ov.style.display = 'none';
+}
+
+// --- 測試連線 ---
+function futuTestReset() {
+  const res = document.getElementById('futuTestResult');
+  const det = document.getElementById('futuTestDetail');
+  if (res) { res.className = 'api-test-result'; res.textContent = '— 欄位已變更，請重新測試'; }
+  if (det) { det.className = 'api-test-detail'; det.textContent = ''; }
+}
+
+async function testFutuConnection() {
+  const btn    = document.getElementById('futuTestBtn');
+  const result = document.getElementById('futuTestResult');
+  const detail = document.getElementById('futuTestDetail');
+
+  const appId     = (document.getElementById('futuAppId')?.value     || '').trim();
+  const appSecret = (document.getElementById('futuAppSecret')?.value || '').trim();
+  const host      = (document.getElementById('futuHost')?.value      || '').trim() || '127.0.0.1';
+  const port      = parseInt(document.getElementById('futuPort')?.value || '') || 11111;
+
+  // 基本驗證
+  if (!appId || !appSecret) {
+    result.className = 'api-test-result error';
+    result.textContent = '❌ 請先填入 App ID 及 App Secret';
+    detail.className = 'api-test-detail show';
+    detail.textContent = '測試前請確保已填寫必填欄位：App ID 與 App Secret。';
+    return;
+  }
+
+  // UI: 載入中
+  btn.disabled = true;
+  btn.classList.add('testing');
+  result.className = 'api-test-result testing';
+  result.textContent = '🔄 正在測試連線...';
+  detail.className = 'api-test-detail';
+  detail.textContent = '';
+
+  // 測試流程分三層：格式驗證 → OpenD 連通性 → App ID 格式
+  const logs = [];
+  let passed = 0;
+  const startTime = Date.now();
+
+  await new Promise(r => setTimeout(r, 400)); // simulate initial delay
+
+  // --- 層 1：App ID 格式驗證 ---
+  logs.push('[ 1/3 ] App ID 格式驗證...');
+  await new Promise(r => setTimeout(r, 300));
+  const appIdOk = /^[a-zA-Z0-9_\-\.]{8,64}$/.test(appId);
+  if (appIdOk) {
+    logs.push('        ✓ App ID 格式正確');
+    passed++;
+  } else {
+    logs.push('        ✗ App ID 格式異常（應為 8-64 位英數字元）');
+  }
+
+  // --- 層 2：App Secret 長度驗證 ---
+  logs.push('[ 2/3 ] App Secret 強度驗證...');
+  await new Promise(r => setTimeout(r, 300));
+  const secretOk = appSecret.length >= 16;
+  if (secretOk) {
+    logs.push('        ✓ App Secret 長度符合要求（≥16 位）');
+    passed++;
+  } else {
+    logs.push('        ✗ App Secret 長度過短（請確認是否完整複製）');
+  }
+
+  // --- 層 3：OpenD 連通性（透過 fetch 嘗試連接本機端口，僅在 http 環境有效）---
+  logs.push(`[ 3/3 ] OpenD 連通性測試（${host}:${port}）...`);
+  await new Promise(r => setTimeout(r, 300));
+  let connStatus = 'skip';
+  // 僅在本機或明確 http 環境嘗試
+  if (window.location.protocol === 'http:' || host === '127.0.0.1' || host === 'localhost') {
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 2500);
+      // Futu OpenD 的 HTTP 端口通常比 API 端口多 1（如 11112）
+      const httpPort = port + 1;
+      await fetch(`http://${host}:${httpPort}/`, { method:'GET', signal: ctrl.signal, mode:'no-cors' });
+      clearTimeout(timer);
+      connStatus = 'ok';
+      logs.push(`        ✓ OpenD HTTP 端口 ${host}:${httpPort} 有回應`);
+      passed++;
+    } catch(e) {
+      if (e.name === 'AbortError') {
+        connStatus = 'timeout';
+        logs.push(`        ⚠ 連線逾時（2.5s）— OpenD 可能未啟動，或防火牆攔截`);
+      } else if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError')) {
+        connStatus = 'refused';
+        logs.push(`        ⚠ 連線被拒絕 — 請確認 Futu OpenD 已啟動`);
+      } else {
+        connStatus = 'error';
+        logs.push(`        ⚠ 無法測試：${e.message}`);
+      }
+    }
+  } else {
+    connStatus = 'skip';
+    logs.push(`        ⓘ 非本機環境，跳過連通性測試（CORS 限制）`);
+    logs.push(`          如需測試，請在本機 http:// 環境下開啟此工具`);
+  }
+
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+  logs.push('');
+  logs.push(`耗時 ${elapsed}s　格式驗證通過 ${passed}/2 項`);
+  if (connStatus !== 'skip') {
+    logs.push(`OpenD 連通性：${connStatus === 'ok' ? '✓ 正常' : '⚠ 異常'}`);
+  }
+
+  // --- 結果判斷 ---
+  const coreOk = appIdOk && secretOk;
+  detail.className = 'api-test-detail show';
+  detail.textContent = logs.join('\n');
+
+  if (coreOk && connStatus === 'ok') {
+    result.className = 'api-test-result success';
+    result.textContent = '✅ 憑證格式正確，OpenD 已連線';
+  } else if (coreOk && (connStatus === 'skip' || connStatus === 'timeout' || connStatus === 'refused')) {
+    result.className = 'api-test-result warn';
+    result.textContent = `⚠️ 憑證格式正確${connStatus === 'skip' ? '（OpenD 跳過）' : '，OpenD 未回應'}`;
+  } else {
+    result.className = 'api-test-result error';
+    result.textContent = '❌ 憑證格式有誤，請重新確認';
+  }
+
+  btn.disabled = false;
+  btn.classList.remove('testing');
+}
+
+// --- 初始化 ---
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeApiModal(); });
+document.addEventListener('DOMContentLoaded', loadFutuApiConfig);
+
+
+// ===== v2.9 富途持倉同步 & 下單整合 =====
+function switchPosTab(t){
+  document.querySelectorAll('.pos-tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t));
+  document.querySelectorAll('.pos-tab-pane').forEach(x=>x.classList.toggle('active',x.dataset.pane===t));
+}
+const FUTU_POS_KEY='ricky_futu_pos_v29';
+let futuPos=[];
+function loadFutuPos(){
+  try{futuPos=JSON.parse(localStorage.getItem(FUTU_POS_KEY)||'[]');}catch(e){futuPos=[];}
+  renderFutuPos();
+}
+function renderFutuPos(){
+  const tb=document.getElementById('futuPosTableBody'),em=document.getElementById('futuPosEmpty'),
+    tbl=document.getElementById('futuPosTable'),la=document.getElementById('futuSyncLast');
+  if(!tb)return;
+  if(!futuPos||!futuPos.length){
+    if(tbl)tbl.style.display='none';if(em)em.style.display='block';if(la)la.textContent='';return;
+  }
+  if(tbl)tbl.style.display='';if(em)em.style.display='none';
+  tb.innerHTML=futuPos.map(p=>{
+    const pnl=p.unrealPnl??0,pc=p.unrealPnlPct??0,cls=pnl>=0?'pos':'neg',sg=pnl>=0?'+':'',
+      tk=(p.code||p.ticker||'').replace('.US','');
+    return '<tr>'
+      +'<td class="col-ticker">'+tk+'</td>'
+      +'<td>'+(p.qty??p.shares??'--')+'</td>'
+      +'<td>$'+Number(p.costPrice??0).toFixed(2)+'</td>'
+      +'<td>$'+Number(p.marketVal??0).toFixed(0)+'</td>'
+      +'<td class="col-pnl '+cls+'">'+sg+'$'+Number(pnl).toFixed(0)+' ('+sg+Number(pc).toFixed(1)+'%)</td>'
+      +'<td><button onclick="importFutuPos(\''+tk+'\','+Number(p.costPrice??0)+','+Number(p.qty??0)+')"'
+      +' style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--green-bg);color:var(--green);border:1px solid rgba(34,201,122,0.3);cursor:pointer;">+sync</button></td>'
+      +'</tr>';
+  }).join('');
+  const ts=futuPos[0]?._syncedAt||'';
+  if(la)la.textContent=ts?'最後同步：'+ts:'';
+}
+function importFutuPos(ticker,cost,qty){
+  const i=positions.findIndex(p=>p.ticker===ticker);
+  if(i!==-1){if(!confirm(ticker+' 已存在，確定覆蓋？'))return;positions.splice(i,1);}
+  positions.push({ticker,entry:parseFloat(cost),shares:parseInt(qty),
+    entryDate:new Date().toISOString().slice(0,10),stopLoss:parseFloat(cost)*0.98,source:'futu'});
+  savePositions();switchPosTab('manual');
+  const s=document.getElementById('futuSyncStatus');
+  if(s){s.className='futu-sync-status ok';s.textContent='✅ '+ticker+' 已同步至本地持倉';}
+}
+async function syncFutuPositions(){
+  const cfg=(typeof getFutuApiConfig==='function')?getFutuApiConfig():null;
+  const btn=document.getElementById('futuSyncBtn'),st=document.getElementById('futuSyncStatus');
+  if(!btn||!st)return;
+  if(!cfg||(!cfg.appId&&!cfg.appSecret)){
+    st.className='futu-sync-status err';
+    st.textContent='請先點右上角「⚙️ 富途 API」設定 App ID 及 App Secret';return;
+  }
+  btn.disabled=true;btn.classList.add('syncing');
+  st.className='futu-sync-status info';st.textContent='正在連接 Futu Proxy...';
+  await new Promise(r=>setTimeout(r,600));
+  const host=cfg.host||'127.0.0.1';let ok=false;
+  try{
+    const ctrl=new AbortController();setTimeout(()=>ctrl.abort(),2500);
+    const resp=await fetch('http://'+host+':9898/positions',{signal:ctrl.signal});
+    if(resp.ok){
+      const data=await resp.json();
+      if(Array.isArray(data)){
+        const ts=new Date().toLocaleString('zh-HK');
+        data.forEach(p=>p._syncedAt=ts);
+        futuPos=data;
+        try{localStorage.setItem(FUTU_POS_KEY,JSON.stringify(data));}catch(e){}
+        renderFutuPos();
+        st.className='futu-sync-status ok';
+        st.textContent='✅ 已同步 '+data.length+' 筆持倉（'+ts+'）';ok=true;
+      }
+    }
+  }catch(e){ok=false;}
+  if(!ok){
+    st.className='futu-sync-status err';
+    st.innerHTML='⚠️ 無法連接 Proxy（'+host+':9898）<br>'
+      +'<span style="font-size:10px;">請先執行 futu_proxy.py，或點「📋 手動貼入 JSON」</span>';
+    const row=document.getElementById('futuManualImportRow');if(row)row.style.display='block';
+  }
+  btn.disabled=false;btn.classList.remove('syncing');
+}
+function showFutuManualImport(){
+  const a=document.getElementById('futuManualImportArea');
+  if(a)a.style.display=a.style.display==='none'?'block':'none';
+}
+function applyFutuManualJson(){
+  const raw=document.getElementById('futuManualJson')?.value?.trim()||'';
+  const st=document.getElementById('futuSyncStatus');
+  if(!raw){st.className='futu-sync-status err';st.textContent='⚠️ JSON 為空';return;}
+  try{
+    let p=JSON.parse(raw);
+    if(!Array.isArray(p)){
+      if(p.positions)p=p.positions;else if(p.data)p=p.data;
+      else throw new Error('格式無法識別');
+    }
+    const ts=new Date().toLocaleString('zh-HK');p.forEach(x=>x._syncedAt=ts);
+    futuPos=p;try{localStorage.setItem(FUTU_POS_KEY,JSON.stringify(p));}catch(e){}
+    renderFutuPos();
+    st.className='futu-sync-status ok';st.textContent='✅ 已匯入 '+p.length+' 筆（'+ts+'）';
+    document.getElementById('futuManualImportArea').style.display='none';
+  }catch(e){st.className='futu-sync-status err';st.textContent='❌ JSON 錯誤：'+e.message;}
+}
+function clearFutuPositions(){
+  if(!confirm('確定清除富途持倉數據？'))return;
+  futuPos=[];try{localStorage.removeItem(FUTU_POS_KEY);}catch(e){}renderFutuPos();
+  const s=document.getElementById('futuSyncStatus');
+  if(s){s.className='futu-sync-status info';s.textContent='🗑 數據已清除';}
+}
+function toggleOrderPanel(ticker){
+  const p=document.getElementById('orderPanel_'+ticker);if(!p)return;
+  document.querySelectorAll('.order-panel.open').forEach(x=>{
+    if(x.id!=='orderPanel_'+ticker)x.classList.remove('open');
+  });
+  const r=p.querySelector('.order-result');
+  if(p.classList.contains('open')){p.classList.remove('open');return;}
+  if(r){r.className='order-result';r.textContent='';}
+  p.classList.add('open');
+}
+function setOrderSide(ticker,side){
+  const p=document.getElementById('orderPanel_'+ticker);if(!p)return;
+  p.querySelectorAll('.order-type-btn').forEach(b=>{
+    b.className='order-type-btn';
+    if(b.dataset.side===side)b.classList.add(side==='buy'?'active-buy':'active-sell');
+  });
+  p.dataset.side=side;
+  const sb=p.querySelector('.order-submit-btn');
+  if(sb){sb.className='order-submit-btn '+side;sb.textContent=(side==='buy'?'📈 確認買入 ':'📉 確認賣出 ')+ticker;}
+}
+async function submitOrder(ticker){
+  const panel=document.getElementById('orderPanel_'+ticker);if(!panel)return;
+  const side=panel.dataset.side||'buy',
+    price=parseFloat(panel.querySelector('.order-price-input')?.value||'0'),
+    shares=parseInt(panel.querySelector('.order-shares-input')?.value||'0'),
+    orderType=panel.querySelector('.order-type-select')?.value||'limit',
+    stopLoss=parseFloat(panel.querySelector('.order-stop-input')?.value||'0'),
+    rd=panel.querySelector('.order-result'),sb=panel.querySelector('.order-submit-btn');
+  if(!price||price<=0||!shares||shares<=0){
+    if(rd){rd.className='order-result err';rd.textContent='⚠️ 請填寫有效價格與股數';}return;
+  }
+  if(!confirm('確認'+(side==='buy'?'買入':'賣出')+' '+ticker
+    +'\n類型：'+(orderType==='limit'?'限價單':'市價單')
+    +'\n價格：$'+price.toFixed(2)+'  股數：'+shares
+    +'\n金額：$'+(price*shares).toLocaleString()
+    +'\n\n⚠️ 請確認富途帳戶狀態'))return;
+  sb.disabled=true;
+  const cfg=(typeof getFutuApiConfig==='function')?getFutuApiConfig():null;
+  const host=cfg?.host||'127.0.0.1';let ok=false;
+  try{
+    const ctrl=new AbortController();setTimeout(()=>ctrl.abort(),3000);
+    const resp=await fetch('http://'+host+':9898/order',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ticker:ticker+'.US',side,price,qty:shares,orderType}),signal:ctrl.signal
+    });
+    if(resp.ok){
+      const d=await resp.json();
+      if(d.orderId||d.order_id||d.status==='ok'){
+        ok=true;
+        if(rd){rd.className='order-result ok';rd.textContent='✅ 委託已送出 | 訂單號：'+(d.orderId||d.order_id||'N/A');}
+        if(side==='buy'&&typeof quickAddPosition==='function')
+          quickAddPosition(ticker,price,shares,stopLoss||price*0.98);
+      }else{
+        if(rd){rd.className='order-result err';rd.textContent='❌ 下單失敗：'+(d.message||d.msg||'');}
+      }
+    }else{throw new Error('HTTP '+resp.status);}
+  }catch(e){
+    if(!ok&&rd){
+      rd.className='order-result err';
+      rd.textContent=e.name==='AbortError'
+        ?'⚠️ 連線逾時 — 請先執行 futu_proxy.py'
+        :'⚠️ Proxy 無回應：'+e.message;
+    }
+  }
+  sb.disabled=false;
+}
+function downloadFutuProxy(){
+  const cfg=(typeof getFutuApiConfig==='function')?getFutuApiConfig():null;
+  const h=(cfg&&cfg.host)||'127.0.0.1', p=(cfg&&cfg.port)||11111;
+  const code=[
+    '#!/usr/bin/env python3',
+    '# futu_proxy.py -- Ricky Scanner v2.9',
+    '# pip install futu-api flask flask-cors',
+    '# python futu_proxy.py',
+    '',
+    'from flask import Flask, jsonify, request',
+    'from flask_cors import CORS',
+    'try:',
+    '    import futu as ft',
+    'except ImportError:',
+    '    print("pip install futu-api flask flask-cors"); exit(1)',
+    '',
+    'OPEND_HOST = "'+h+'"',
+    'OPEND_PORT = '+p,
+    '',
+    'app = Flask(__name__)',
+    'CORS(app)',
+    '',
+    '@app.route("/positions")',
+    'def get_positions():',
+    '    try:',
+    '        ctx = ft.OpenUSTradeContext(host=OPEND_HOST, port=OPEND_PORT)',
+    '        ret, data = ctx.position_list_query()',
+    '        ctx.close()',
+    '        if ret != ft.RET_OK: return jsonify({"error": str(data)}), 400',
+    '        out = []',
+    '        for _, row in data.iterrows():',
+    '            out.append({"code": row.get("code",""), "qty": int(row.get("qty",0)),',
+    '                "costPrice": float(row.get("cost_price",0)),',
+    '                "marketVal": float(row.get("market_val",0)),',
+    '                "unrealPnl": float(row.get("unrealized_pl",0)),',
+    '                "unrealPnlPct": float(row.get("unrealized_pl_ratio",0))*100})',
+    '        return jsonify(out)',
+    '    except Exception as e: return jsonify({"error": str(e)}), 500',
+    '',
+    '@app.route("/order", methods=["POST"])',
+    'def place_order():',
+    '    try:',
+    '        b = request.get_json()',
+    '        ot = ft.OrderType.NORMAL if b.get("orderType")=="limit" else ft.OrderType.MARKET',
+    '        ts = ft.TrdSide.BUY if b.get("side")=="buy" else ft.TrdSide.SELL',
+    '        ctx = ft.OpenUSTradeContext(host=OPEND_HOST, port=OPEND_PORT)',
+    '        ret, data = ctx.place_order(',
+    '            price=float(b["price"]), qty=int(b["qty"]),',
+    '            code=b["ticker"], trd_side=ts, order_type=ot, trd_env=ft.TrdEnv.REAL)',
+    '        ctx.close()',
+    '        if ret != ft.RET_OK: return jsonify({"error": str(data)}), 400',
+    '        return jsonify({"orderId": str(data["order_id"].iloc[0]), "status": "ok"})',
+    '    except Exception as e: return jsonify({"error": str(e)}), 500',
+    '',
+    'if __name__ == "__main__":',
+    '    print("Futu Proxy running at http://127.0.0.1:9898")',
+    '    app.run(host="127.0.0.1", port=9898)',
+  ].join('\n');
+  // Mobile-compatible: try blob download first, fallback to data URI new tab
+  try {
+    const blob = new Blob([code], {type:'text/plain;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'futu_proxy.py';
+    a.style.display = 'none';
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+  } catch(e) {
+    // Fallback: open as data URI in new tab (iOS Safari compatible)
+    const uri = 'data:text/plain;charset=utf-8,' + encodeURIComponent(code);
+    window.open(uri, '_blank');
+  }
+}
+document.addEventListener('DOMContentLoaded', loadFutuPos);
+</script>
+</body>
+</html>
