@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美股日線波段策略掃描器 v2.9 — Ricky Chan</title>
+<title>美股日線波段策略掃描器 v2.9a — Ricky Chan</title>
 <style>
   :root {
     --bg: #0d0f12; --bg2: #141720; --bg3: #1c2030; --bg4: #232838;
@@ -435,15 +435,73 @@
   }
   .api-modal-clear:hover { border-color: var(--red); color: var(--red); }
 
+/* ===== v2.9 富途持倉同步 & 下單整合 ===== */
+.pos-tab-bar{display:flex;gap:0;margin-bottom:1rem;border-bottom:1px solid var(--border);}
+.pos-tab{font-size:12px;font-weight:600;padding:7px 16px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);cursor:pointer;transition:all 0.15s;margin-bottom:-1px;}
+.pos-tab:hover{color:var(--text2);}
+.pos-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.pos-tab-pane{display:none;}
+.pos-tab-pane.active{display:block;}
+.futu-sync-info{font-size:12px;color:var(--text3);line-height:1.6;background:var(--bg3);border-radius:var(--radius-sm);padding:9px 12px;margin-bottom:12px;border-left:2px solid var(--blue);}
+.futu-sync-row{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;}
+.futu-sync-btn{height:36px;padding:0 14px;background:var(--bg3);color:var(--text2);border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:6px;white-space:nowrap;}
+.futu-sync-btn:hover:not(:disabled){border-color:var(--blue);color:var(--blue);}
+.futu-sync-btn.primary{background:var(--blue-bg);border-color:rgba(79,142,247,0.4);color:var(--blue);}
+.futu-sync-btn.primary:hover{background:var(--blue);color:#fff;}
+.futu-sync-btn:disabled{opacity:0.4;cursor:not-allowed;}
+.futu-sync-btn .sync-spinner{width:11px;height:11px;border:1.5px solid rgba(79,142,247,0.3);border-top-color:var(--blue);border-radius:50%;animation:spin 0.7s linear infinite;display:none;}
+.futu-sync-btn.syncing .sync-spinner{display:block;}
+.futu-sync-btn.syncing .sync-icon{display:none;}
+.futu-sync-status{font-size:11px;padding:6px 10px;border-radius:var(--radius-sm);display:none;margin-bottom:10px;}
+.futu-sync-status.ok{display:block;background:var(--green-bg);color:var(--green);}
+.futu-sync-status.err{display:block;background:var(--red-bg);color:var(--red);}
+.futu-sync-status.info{display:block;background:var(--blue-bg);color:var(--blue);}
+.futu-pos-table{width:100%;border-collapse:collapse;font-size:12px;}
+.futu-pos-table th{text-align:left;padding:7px 10px;background:var(--bg3);color:var(--text3);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);}
+.futu-pos-table td{padding:8px 10px;border-bottom:1px solid var(--border);color:var(--text2);}
+.futu-pos-table tr:last-child td{border-bottom:none;}
+.futu-pos-table tr:hover td{background:rgba(255,255,255,0.02);}
+.futu-pos-table .col-ticker{font-weight:700;font-family:'SF Mono',monospace;color:var(--text);}
+.futu-pos-table .col-pnl.pos{color:var(--green);}
+.futu-pos-table .col-pnl.neg{color:var(--red);}
+.futu-sync-last{font-size:10px;color:var(--text3);margin-top:8px;}
+.order-panel{display:none;margin-top:12px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:14px 16px;border-left:3px solid var(--blue);}
+.order-panel.open{display:block;animation:orderIn 0.18s ease;}
+@keyframes orderIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.order-panel-title{font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;}
+.order-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;}
+.order-field{display:flex;flex-direction:column;gap:3px;}
+.order-field label{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;}
+.order-field input,.order-field select{height:34px;padding:0 9px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;font-family:'SF Mono',monospace;color:var(--text);outline:none;transition:border-color 0.15s;}
+.order-field input:focus,.order-field select:focus{border-color:var(--blue);}
+.order-type-row{display:flex;gap:6px;margin-bottom:10px;}
+.order-type-btn{flex:1;height:32px;font-size:11px;font-weight:600;border-radius:var(--radius-sm);cursor:pointer;border:1px solid var(--border2);background:var(--bg3);color:var(--text3);transition:all 0.15s;}
+.order-type-btn.active-buy{border-color:var(--green);background:var(--green-bg);color:var(--green);}
+.order-type-btn.active-sell{border-color:var(--red);background:var(--red-bg);color:var(--red);}
+.order-actions{display:flex;gap:8px;}
+.order-submit-btn{flex:1;height:38px;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;transition:all 0.15s;}
+.order-submit-btn.buy{background:var(--green);color:#fff;}
+.order-submit-btn.sell{background:var(--red);color:#fff;}
+.order-submit-btn:hover{opacity:0.85;}
+.order-submit-btn:disabled{opacity:0.35;cursor:not-allowed;}
+.order-cancel-btn{height:38px;padding:0 16px;background:var(--bg3);color:var(--text3);border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;transition:all 0.15s;}
+.order-cancel-btn:hover{color:var(--text);}
+.order-disclaimer{font-size:10px;color:var(--text3);margin-top:8px;line-height:1.5;padding:6px 8px;background:rgba(245,166,35,0.07);border-radius:var(--radius-sm);border-left:2px solid var(--amber);}
+.order-result{margin-top:8px;font-size:12px;padding:7px 10px;border-radius:var(--radius-sm);display:none;}
+.order-result.ok{display:block;background:var(--green-bg);color:var(--green);}
+.order-result.err{display:block;background:var(--red-bg);color:var(--red);}
+.order-toggle-btn{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;cursor:pointer;background:var(--blue-bg);border:1px solid rgba(79,142,247,0.3);color:var(--blue);margin-left:6px;transition:all 0.15s;}
+.order-toggle-btn:hover{background:var(--blue);color:#fff;}
+@media(max-width:640px){.order-grid{grid-template-columns:1fr 1fr;}.futu-sync-row{flex-wrap:wrap;}}
 </style>
 </head>
 <body>
 
-<nav>
+<<nav>
   <div class="nav-left">
     <div class="nav-logo">R</div>
     <span class="nav-title">Ricky 策略掃描器</span>
-    <span class="nav-tag">v2.9</span>
+    <span class="nav-tag">v2.9a</span>
   </div>
   <div style="display:flex;align-items:center;gap:8px;">
     <button class="nav-settings-btn" id="apiSettingsBtn" onclick="openApiModal()" title="富途 OpenAPI 設定">
@@ -457,7 +515,7 @@
 
   <div class="hero">
     <h1>美股日線波段策略掃描器</h1>
-    <p>v2.8｜大盤錨定升級至1年數據+EMA200｜多時框手動校準覆蓋｜校準值持久保存</p>
+    <p>v2.9a｜Proxy 連線修正版｜大盤錨定 EMA200｜多時框手動校準</p>
   </div>
 
   <div class="mode-bar" id="modeBar">
@@ -569,7 +627,7 @@ for t in ['QQQ','SPY']:
   </div>
 
   <div class="anchor-card" id="anchorStage1" style="display:none;">
-    <div class="anchor-title">【狀態錨定摘要 #Stage_1】<span class="cache-badge" id="anchorCacheBadge">即時</span></div>
+    <div class="anchor-title">【狀態錨定摘要 #Stage_1】<<span class="cache-badge" id="anchorCacheBadge">即時</span></div>
     <div class="anchor-grid">
       <div class="anchor-item">📅 時間戳：<strong id="a1Time">—</strong></div>
       <div class="anchor-item">📊 大盤狀態：<strong id="a1Market">—</strong></div>
@@ -618,7 +676,6 @@ for t in ['QQQ','SPY']:
     <div style="display:flex;gap:6px;margin-bottom:8px;">
       <input type="text" id="posTicker" placeholder="標的" maxlength="6" style="flex:1;height:34px;padding:0 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;color:var(--text);font-family:'SF Mono',monospace;text-transform:uppercase;outline:none;" oninput="this.value=this.value.toUpperCase()" />
       <input type="number" id="posEntry" placeholder="進場價" step="0.01" style="width:80px;height:34px;padding:0 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;color:var(--text);font-family:'SF Mono',monospace;outline:none;" />
-      <!-- FIX-6: 手動止損價欄位（選填，預設進場×0.98） -->
       <input type="number" id="posStop" placeholder="止損價" step="0.01" title="選填，預設進場價×0.98" style="width:80px;height:34px;padding:0 10px;background:var(--bg3);border:1px solid rgba(232,83,90,0.5);border-radius:var(--radius-sm);font-size:13px;color:var(--red);font-family:'SF Mono',monospace;outline:none;" />
       <input type="number" id="posShares" placeholder="股數" step="1" style="width:65px;height:34px;padding:0 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;color:var(--text);font-family:'SF Mono',monospace;outline:none;" />
       <button class="scan-btn" style="height:34px;padding:0 16px;font-size:12px;background:var(--green);white-space:nowrap;" onclick="addPosition()">+ 新增持倉</button>
@@ -628,7 +685,7 @@ for t in ['QQQ','SPY']:
       <button class="scan-btn" style="height:34px;padding:0 16px;font-size:12px;background:var(--red-bg);color:var(--red);border:1px solid rgba(232,83,90,0.3);" onclick="clearAllPositions()">🗑️ 清空全部</button>
     </div>
     <div id="posMsg" style="margin-top:6px;font-size:11px;color:var(--amber);min-height:16px;"></div>
-    </div><!-- /tab:manual -->
+    </div>
     <div class="pos-tab-pane" data-pane="futu">
       <div class="futu-sync-info">
         🔗 需先在本機執行 <strong>futu_proxy.py</strong> 腳本，掃描器才能讀取富途持倉及執行下單。<br>
@@ -661,7 +718,7 @@ for t in ['QQQ','SPY']:
         尚未同步持倉，點擊「🔄 同步富途持倉」開始
       </div>
       <div class="futu-sync-last" id="futuSyncLast"></div>
-    </div><!-- /tab:futu -->
+    </div>
   </div>
 
   <div class="panel">
@@ -733,8 +790,6 @@ for t in ['QQQ','SPY']:
     </div>
   </div>
 
-  </div>
-
   <button class="rules-toggle" onclick="toggleRules()">
     <span id="rulesArrow">▶</span> 查看 6 項過濾條件說明
   </button>
@@ -788,7 +843,7 @@ for t in ['QQQ','SPY']:
   </div>
 
   <div class="footer">
-    <div>美股日線波段專屬交易策略 v2.6_修正版 · Ricky Chan · Yahoo Finance 直連 · 無需 API Key</div>
+    <div>美股日線波段專屬交易策略 v2.9a_Proxy修正版 · Ricky Chan · Yahoo Finance 直連 · 無需 API Key</div>
     <div>僅供技術面參考，不構成投資建議 · 一切決策以策略規則為唯一依據</div>
   </div>
 
@@ -807,8 +862,14 @@ for t in ['QQQ','SPY']:
 
     <div class="api-modal-desc">
       📌 此掃描器目前使用 <strong>Yahoo Finance 直連，無需 API Key</strong> 即可正常掃描。<br>
-      如需整合富途牛牛持倉數據或下單功能，請填入 Futu OpenAPI 憑證。<br>
-      <span style="color:var(--amber)">⚠️ 憑證僅存於瀏覽器本地 localStorage，不上傳任何伺服器。</span>
+      如需整合富途牛牛持倉數據或下單功能，請先在本機執行 <code>python futu_proxy.py</code>，再填入憑證。<br>
+      <span style="color:var(--amber)">⚠️ 憑證僅存於瀏覽器本地 localStorage，不上傳任何伺服器。</span><br>
+      <span style="color:var(--red)">🚨 重要環境限制：</span>
+      <ul style="margin:6px 0 0 16px;font-size:11px;color:var(--text3);line-height:1.6;">
+        <li>瀏覽器<strong>無法直接連線 Futu OpenD</strong>（TCP Socket），必須透過本機 Proxy 橋接</li>
+        <li>若使用手機瀏覽器，<<code>127.0.0.1</code> 指向手機本身，請改填電腦區網 IP（如 <code>192.168.1.x</code>）</li>
+        <li>若頁面為 <code>https://</code>，瀏覽器會封鎖 <code>http://127.0.0.1</code> 請求，請下載 HTML 到本機用 <code>http://</code> 開啟</li>
+      </ul>
     </div>
 
     <div class="api-field">
@@ -829,14 +890,14 @@ for t in ['QQQ','SPY']:
       <label>OpenD 主機 <span class="field-badge">選填</span></label>
       <input type="text" id="futuHost" placeholder="預設：127.0.0.1（本機）"
         oninput="this.classList.toggle('has-value', this.value.trim().length > 0); futuTestReset();" />
-      <span class="field-hint">本機安裝 Futu OpenD 時填 127.0.0.1</span>
+      <span class="field-hint">本機安裝 Futu OpenD 時填 127.0.0.1；手機請填電腦區網 IP</span>
     </div>
 
     <div class="api-field">
       <label>OpenD 端口 <span class="field-badge">選填</span></label>
       <input type="number" id="futuPort" placeholder="預設：11111"
         oninput="this.classList.toggle('has-value', this.value.trim().length > 0); futuTestReset();" />
-      <span class="field-hint">Futu OpenD 預設端口為 11111</span>
+      <span class="field-hint">Futu OpenD 預設端口為 11111（此處僅供 Proxy 內部連線使用）</span>
     </div>
 
     <div class="api-modal-divider"></div>
@@ -851,7 +912,7 @@ for t in ['QQQ','SPY']:
         <button class="api-test-btn" id="futuTestBtn" onclick="testFutuConnection()">
           <span class="btn-spinner"></span>
           <span class="btn-icon">🔌</span>
-          測試 API 連線
+          測試 Proxy 連線
         </button>
         <div class="api-test-result" id="futuTestResult">— 尚未測試</div>
       </div>
@@ -1067,7 +1128,6 @@ function loadAnchorState() {
     const raw = sessionStorage.getItem('ricky_anchor_v25');
     if (raw) {
       const parsed = JSON.parse(raw);
-      // 檢查錨定日期是否為今日（美東時間）
       const etNow = new Date().toLocaleDateString('en-US', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' });
       const anchorDate = parsed && parsed.anchorDate ? parsed.anchorDate : null;
       if (anchorDate && anchorDate === etNow) {
@@ -1078,7 +1138,6 @@ function loadAnchorState() {
         document.getElementById('riskHint').style.color = marketAnchorState.statusColor || 'var(--green)';
         showAnchor1(marketAnchorState.marketStatus, marketAnchorState.limit, marketAnchorState.statusColor || 'var(--green)', true);
       } else {
-        // 過期：清除並強制重新抓取
         sessionStorage.removeItem('ricky_anchor_v25');
         marketAnchorState = null;
         console.log('錨定狀態已過期（' + (anchorDate || '無日期') + ' vs ' + etNow + '），強制重新抓取 Stage 1');
@@ -1100,7 +1159,6 @@ function updateClock() {
   const d = new Date().toLocaleDateString('zh-TW', { timeZone: 'America/New_York', month: 'long', day: 'numeric' });
   document.getElementById('dateDisplay').textContent = d;
 
-  // FIX-4: 統一一次解析時分，避免跨秒不一致；parseInt 加 radix 10
   const _etStr = new Date().toLocaleString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false });
   const etHour   = parseInt(_etStr.split(':')[0], 10);
   const etMinute = parseInt(_etStr.split(':')[1], 10);
@@ -1130,14 +1188,14 @@ const POOL_KEY_V27 = 'ricky_watch_pool_v27';
 const POOL_TAGS_PRESET = ['半導體','AI/雲端','能源基建','消費科技','生醫','自選'];
 const TAG_DEFAULT_MAP = {'NVDA':'半導體','AMD':'半導體','AVGO':'半導體','QCOM':'半導體','MU':'半導體','LRCX':'半導體','AMAT':'半導體','PLTR':'AI/雲端','CEG':'能源基建','VRT':'能源基建','ETN':'能源基建','HPQ':'消費科技'};
 
-let watchPool = []; // v2.7 格式: { ticker, tag, note, addedAt, lastVerdict }
+let watchPool = [];
 let poolFilter = 'all';
-let lastScanResults = []; // v2.7 匯出用
+let lastScanResults = [];
 
 function loadPool() {
   try {
     let saved = localStorage.getItem(POOL_KEY_V27);
-    if (!saved) saved = localStorage.getItem('ricky_watch_pool_v2'); // 升級遷移
+    if (!saved) saved = localStorage.getItem('ricky_watch_pool_v2');
     if (saved) {
       const parsed = JSON.parse(saved);
       watchPool = parsed.map(item =>
@@ -1353,7 +1411,6 @@ function clearAllCache() {
     sessionStorage.removeItem('ricky_anchor_v25');
     marketAnchorState = null;
     alert('✅ 快取已清除｜請重新執行 Stage 1 大盤錨定');
-    // FIX-9: 用 location.href 避免部分瀏覽器「重新提交表單」警告
     location.href = location.pathname + location.search;
   } catch(e) { alert('清除失敗：' + e.message); }
 }
@@ -1420,7 +1477,6 @@ function addPosition() {
     msg.textContent = '⚠️ 請填寫標的、進場價、股數';
     return;
   }
-  // FIX-7c: 止損價合法性驗證
   const _stopCheck = parseFloat(document.getElementById('posStop').value);
   if (!isNaN(_stopCheck) && _stopCheck >= entry) {
     msg.textContent = '⚠️ 止損價必須低於進場價';
@@ -1438,7 +1494,6 @@ function addPosition() {
     entry, 
     shares, 
     entryDate: new Date().toISOString().slice(0,10), 
-    // FIX-7: 讀取手動止損價，空白則預設進場×0.98
     stopLoss: (() => {
       const _sv = parseFloat(document.getElementById('posStop').value);
       return (!isNaN(_sv) && _sv > 0 && _sv < entry) ? _sv : entry * 0.98;
@@ -1597,7 +1652,6 @@ async function runMarketAnchor() {
     const c5s_warn = s.rsi != null && s.rsi > 65 && s.rsi <= 70;
     const c5q_block = q.rsi != null && q.rsi > 70;
     const c5s_block = s.rsi != null && s.rsi > 70;
-    // v2.8: EMA200 牛熊判斷（參考用，不阻斷進場）
     const c7q = q.ema200 != null && q.price > q.ema200;
     const c7s = s.ema200 != null && s.price > s.ema200;
     const ema200BullStr_q = q.ema200 != null ? (c7q ? `<span style="color:var(--green)">$${q.price.toFixed(2)} > $${q.ema200.toFixed(2)} ✅</span>` : `<span style="color:var(--red)">$${q.price.toFixed(2)} < $${q.ema200.toFixed(2)} ❌</span>`) : '—';
@@ -1606,7 +1660,7 @@ async function runMarketAnchor() {
     const allPass = c1q && c1s && c2q && c2s && c3q && c3s && c4q && c4s && c5q && c5s;
     const anyBlock = c5q_block || c5s_block;
     const anyWarn = (c5q_warn || c5s_warn) && !anyBlock;
-    const ema200Bull = c7q && c7s; // 雙指數站 EMA200 = 大牛市結構
+    const ema200Bull = c7q && c7s;
 
     let marketStatus, limit, statusColor;
     if (allPass) { marketStatus = '多頭'; limit = '5–6 成'; statusColor = 'var(--green)'; }
@@ -1628,7 +1682,7 @@ async function runMarketAnchor() {
     ];
 
     body.innerHTML = rows.map(row => {
-      const isRef = row[6] === true; // ⑦ EMA200 是參考項
+      const isRef = row[6] === true;
       const rowStyle = isRef ? 'opacity:0.8;border-top:1px dashed var(--border2);' : '';
       const refBadge = isRef ? ' <span style="font-size:9px;color:var(--text3);font-weight:400;">[參考]</span>' : '';
       const resultCell = isRef
@@ -1725,7 +1779,6 @@ function applyFallback() {
   const c3s = s.ema20 > s.ema50;
   const c4q = q.macd > 0;
   const c4s = s.macd > 0;
-  // FIX-8: RSI null guard（人工輸入可能漏填）
   if (q.rsi == null || s.rsi == null) {
     alert('⚠️ QQQ 或 SPY 的 RSI(14) 未填寫，為必填欄位，請補上後重新套用。');
     return;
@@ -1832,7 +1885,6 @@ async function startScan() {
     document.getElementById('settlementPanel').classList.add('open');
   }
 
-  // v2.7: 收集結果、更新觀察池 PASS 標記、啟用匯出按鈕
   lastScanResults = results.filter(r => r && !r.error);
   updatePoolVerdicts(lastScanResults);
   const _expBtn = document.getElementById('exportReportBtn');
@@ -1862,7 +1914,7 @@ async function scanTicker(ticker) {
     const e50 = ema50[last];
     const e50_5d = ema50[d5];
     const macd = macdObj.macd[last];
-    const rsiVal = rsi[last];  // #2: 不預設，讓 null 暴露
+    const rsiVal = rsi[last];
     const volume = data.volumes[last];
     const vol5d = data.volumes.slice(-5).reduce((a,b)=>a+b,0) / 5;
     const atr = atrArr.length ? atrArr[atrArr.length-1] : null;
@@ -1882,7 +1934,6 @@ async function scanTicker(ticker) {
 
     let earnings_within_3days = false;
     if (earningsDate) {
-      // E3: 統一 UTC 天數計算，消除時區偏差
       const ed = new Date(earningsDate + 'T12:00:00Z');
       const now = new Date();
       const edDay = Math.floor(ed.getTime() / (1000 * 60 * 60 * 24));
@@ -1905,7 +1956,6 @@ async function scanTicker(ticker) {
 
     const distEma20 = ((price - e20) / e20) * 100;
     const entryDistanceOk = Math.abs(distEma20) <= 1.5;
-    // FIX-5: 縮量判斷用不含今日的5日均量，避免今日大量拉高基準
     const vol5dAvg = data.volumes.length >= 6
       ? data.volumes.slice(-6, -1).reduce((a,b)=>a+b,0) / 5
       : vol5d;
@@ -1919,17 +1969,12 @@ async function scanTicker(ticker) {
     else if (passed >= 3 && !c5_block) verdict = 'watch';
     else verdict = 'fail';
 
-    // FIX-1: 止損邏輯重構
-    // technicalStop = max(ATR止損, EMA50止損) — 取較嚴格者
-    // hardStop = price×0.98 — 最大允許虧損上限（2%）
-    // stopLoss = min(technicalStop, hardStop) — 確保不超過2%硬止損
     const atrStop = price - (atr != null ? atr * 1.5 : price * 0.02);
     const emaStop = e50 * 0.98;
     const hardStop = price * 0.98;
     const technicalStop = Math.max(atrStop, emaStop);
     const stopLoss = Math.max(0, Math.min(technicalStop, hardStop));
     
-    // FIX-2: 目標價保護 — 確保至少高於現價5%
     const targetPrice = Math.max(price * 1.05, high52w * 0.95);
     const riskPerShare = price - stopLoss;
     const rewardPerShare = Math.max(0, targetPrice - price);
@@ -2077,7 +2122,7 @@ function renderCard(r) {
         💡 可在上方「資金與風險參數設定」面板即時調整總資金與單檔風險%
       </div>
       <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="scan-btn" style="height:32px;padding:0 16px;font-size:12px;background:var(--blue);" onclick="fillSettlement('${r.ticker}', ${r.price}, ${r.stopLoss??0}, ${r.targetPrice??0}, ${r.suggestedShares??0})">💾 存結算卡</button><!-- FIX-10 -->
+        <button class="scan-btn" style="height:32px;padding:0 16px;font-size:12px;background:var(--blue);" onclick="fillSettlement('${r.ticker}', ${r.price}, ${r.stopLoss??0}, ${r.targetPrice??0}, ${r.suggestedShares??0})">💾 存結算卡</button>
         ${!r.isHolding && r.verdict === 'pass' ? `<button class="scan-btn" style="height:32px;padding:0 16px;font-size:12px;background:var(--green);" onclick="quickAddPosition('${r.ticker}', ${r.price}, ${r.suggestedShares}, ${r.stopLoss})">📌 加入持倉</button>` : ''}
       </div>
     </div>
@@ -2258,9 +2303,8 @@ function renderCard(r) {
   </div>`;
 }
 
-// ===== v2.8 多時框自動抓取 + 手動校準 =====
 const TF_MANUAL_KEY = 'ricky_tf_manual_v28';
-let tfManualStore = {}; // { 'NVDA': { '1h': { rsi: 55, macd: 0.12 }, '1d': {...}, '1wk': {...} } }
+let tfManualStore = {};
 
 function loadTFManualStore() {
   try { tfManualStore = JSON.parse(localStorage.getItem(TF_MANUAL_KEY) || '{}'); } catch(e) { tfManualStore = {}; }
@@ -2308,11 +2352,9 @@ async function loadAutoTF(ticker) {
       const price   = data.closes[last];
       const e20v    = ema20[last];
       const e50v    = ema50[last];
-      // 自動抓取值
       const autoRsi  = rsiArr[last];
       const autoMacd = macdObj.macd[last];
       const autoHist = macdObj.hist[last];
-      // 手動校準值（優先）
       const manual = getTFManual(ticker, cfg.key);
       const rsiVal  = (manual && manual.rsi  != null) ? manual.rsi  : autoRsi;
       const macdVal = (manual && manual.macd != null) ? manual.macd : autoMacd;
@@ -2352,7 +2394,6 @@ function applyTFManual(ticker, tfKey) {
   const rsiVal  = rsiEl  && rsiEl.value.trim()  !== '' ? parseFloat(rsiEl.value)  : null;
   const macdVal = macdEl && macdEl.value.trim() !== '' ? parseFloat(macdEl.value) : null;
   setTFManual(ticker, tfKey, rsiVal, macdVal);
-  // Re-render with new values
   loadAutoTF(ticker);
 }
 
@@ -2389,7 +2430,6 @@ function renderAutoTFPanel(ticker, tfData) {
   let cardsHtml = '';
   for (const [key, d] of Object.entries(tfData)) {
     if (d.error) {
-      // Even on error, show manual calibration panel
       const manual = getTFManual(ticker, key);
       const mRsi  = manual && manual.rsi  != null ? manual.rsi  : '';
       const mMacd = manual && manual.macd != null ? manual.macd : '';
@@ -2459,7 +2499,7 @@ function renderAutoTFPanel(ticker, tfData) {
           </div>
         </div>
         <div class="tf-manual-note">
-          自動值：RSI ${d.autoRsi != null ? d.autoRsi.toFixed(1) : '—'} ／ MACD ${d.autoMacd != null ? d.autoMacd.toFixed(3) : '—'}<br>
+          自動值：RSI ${d.autoRsi != null ? d.autoRsi.toFixed(1) : '—'} ／ MACD ${d.autoMacd != null ? d.autoMacd.toFixed(3) : '—'}<<br>
           填入值優先於自動抓取，顯示 🟠 標記。值自動保存，重新開啟頁面仍有效。
         </div>
       </div>
@@ -2483,7 +2523,6 @@ function renderAutoTFPanel(ticker, tfData) {
   `;
 }
 
-// ===== v2.7 HTML 報告匯出 =====
 function exportHTMLReport() {
   if (!lastScanResults || !lastScanResults.length) { alert('請先執行掃描'); return; }
   const now = new Date();
@@ -2546,108 +2585,11 @@ function exportHTMLReport() {
   tbody tr:hover td{background:rgba(255,255,255,0.02);}
   .footer{margin-top:20px;font-size:11px;color:#525869;text-align:center;padding-top:16px;border-top:1px solid rgba(255,255,255,0.07);}
   @media print{body{background:#fff;color:#111;padding:20px;}table,thead tr,.sum-card{background:#f5f5f5;}th{color:#666;}tbody tr{border-color:#ddd;}}
-
-  /* ===== v2.8 手動校準 ===== */
-  .tf-manual-toggle { font-size: 11px; color: var(--text3); cursor: pointer; display: inline-flex;
-    align-items: center; gap: 4px; margin-top: 6px; padding: 3px 8px; border-radius: var(--radius-sm);
-    border: 1px solid var(--border); background: var(--bg4); transition: all 0.15s; user-select: none; }
-  .tf-manual-toggle:hover { border-color: var(--border2); color: var(--text2); }
-  .tf-manual-toggle.active { border-color: var(--amber); color: var(--amber); background: var(--amber-bg); }
-  .tf-manual-panel { display: none; margin-top: 8px; padding: 10px 12px;
-    background: var(--bg4); border-radius: var(--radius-sm); border: 1px solid var(--border2); }
-  .tf-manual-panel.open { display: block; }
-  .tf-manual-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .tf-manual-field { display: flex; flex-direction: column; gap: 3px; }
-  .tf-manual-field label { font-size: 10px; color: var(--text3); font-weight: 600;
-    text-transform: uppercase; letter-spacing: 0.4px; }
-  .tf-manual-input { background: var(--bg3); border: 1px solid var(--border2);
-    border-radius: var(--radius-sm); padding: 4px 8px; height: 32px; font-size: 12px;
-    font-family: 'SF Mono', monospace; color: var(--text); outline: none; width: 100%;
-    transition: border-color 0.15s; }
-  .tf-manual-input:focus { border-color: var(--amber); }
-  .tf-manual-input.has-value { border-color: var(--amber); background: var(--amber-bg); }
-  .tf-manual-actions { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
-  .tf-manual-apply { height: 28px; padding: 0 14px; font-size: 11px; font-weight: 600;
-    border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--amber);
-    background: var(--amber-bg); color: var(--amber); transition: all 0.15s; }
-  .tf-manual-apply:hover { background: var(--amber); color: var(--bg); }
-  .tf-manual-clear { height: 28px; padding: 0 12px; font-size: 11px; font-weight: 600;
-    border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--border2);
-    background: var(--bg3); color: var(--text3); transition: all 0.15s; }
-  .tf-manual-clear:hover { border-color: var(--red); color: var(--red); }
-  .tf-manual-note { font-size: 10px; color: var(--text3); line-height: 1.5; }
-  .tf-override-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 10px;
-    font-weight: 700; padding: 1px 6px; border-radius: 10px; background: var(--amber-bg);
-    color: var(--amber); margin-left: 4px; vertical-align: middle; }
-  /* ===== v2.8 大盤 EMA200 ===== */
-  .anchor-ema200 { display: inline-flex; align-items: center; gap: 4px; font-size: 12px;
-    font-weight: 600; padding: 2px 8px; border-radius: 10px; margin-left: 6px; }
-  .anchor-ema200.bull { background: rgba(34,201,122,0.1); color: var(--green); }
-  .anchor-ema200.bear { background: rgba(232,83,90,0.1); color: var(--red); }
-
-/* ===== v2.9 富途持倉同步 & 下單整合 ===== */
-.pos-tab-bar{display:flex;gap:0;margin-bottom:1rem;border-bottom:1px solid var(--border);}
-.pos-tab{font-size:12px;font-weight:600;padding:7px 16px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);cursor:pointer;transition:all 0.15s;margin-bottom:-1px;}
-.pos-tab:hover{color:var(--text2);}
-.pos-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
-.pos-tab-pane{display:none;}
-.pos-tab-pane.active{display:block;}
-.futu-sync-info{font-size:12px;color:var(--text3);line-height:1.6;background:var(--bg3);border-radius:var(--radius-sm);padding:9px 12px;margin-bottom:12px;border-left:2px solid var(--blue);}
-.futu-sync-row{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;}
-.futu-sync-btn{height:36px;padding:0 14px;background:var(--bg3);color:var(--text2);border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:6px;white-space:nowrap;}
-.futu-sync-btn:hover:not(:disabled){border-color:var(--blue);color:var(--blue);}
-.futu-sync-btn.primary{background:var(--blue-bg);border-color:rgba(79,142,247,0.4);color:var(--blue);}
-.futu-sync-btn.primary:hover{background:var(--blue);color:#fff;}
-.futu-sync-btn:disabled{opacity:0.4;cursor:not-allowed;}
-.futu-sync-btn .sync-spinner{width:11px;height:11px;border:1.5px solid rgba(79,142,247,0.3);border-top-color:var(--blue);border-radius:50%;animation:spin 0.7s linear infinite;display:none;}
-.futu-sync-btn.syncing .sync-spinner{display:block;}
-.futu-sync-btn.syncing .sync-icon{display:none;}
-.futu-sync-status{font-size:11px;padding:6px 10px;border-radius:var(--radius-sm);display:none;margin-bottom:10px;}
-.futu-sync-status.ok{display:block;background:var(--green-bg);color:var(--green);}
-.futu-sync-status.err{display:block;background:var(--red-bg);color:var(--red);}
-.futu-sync-status.info{display:block;background:var(--blue-bg);color:var(--blue);}
-.futu-pos-table{width:100%;border-collapse:collapse;font-size:12px;}
-.futu-pos-table th{text-align:left;padding:7px 10px;background:var(--bg3);color:var(--text3);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);}
-.futu-pos-table td{padding:8px 10px;border-bottom:1px solid var(--border);color:var(--text2);}
-.futu-pos-table tr:last-child td{border-bottom:none;}
-.futu-pos-table tr:hover td{background:rgba(255,255,255,0.02);}
-.futu-pos-table .col-ticker{font-weight:700;font-family:'SF Mono',monospace;color:var(--text);}
-.futu-pos-table .col-pnl.pos{color:var(--green);}
-.futu-pos-table .col-pnl.neg{color:var(--red);}
-.futu-sync-last{font-size:10px;color:var(--text3);margin-top:8px;}
-.order-panel{display:none;margin-top:12px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:14px 16px;border-left:3px solid var(--blue);}
-.order-panel.open{display:block;animation:orderIn 0.18s ease;}
-@keyframes orderIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
-.order-panel-title{font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;}
-.order-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;}
-.order-field{display:flex;flex-direction:column;gap:3px;}
-.order-field label{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;}
-.order-field input,.order-field select{height:34px;padding:0 9px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;font-family:'SF Mono',monospace;color:var(--text);outline:none;transition:border-color 0.15s;}
-.order-field input:focus,.order-field select:focus{border-color:var(--blue);}
-.order-type-row{display:flex;gap:6px;margin-bottom:10px;}
-.order-type-btn{flex:1;height:32px;font-size:11px;font-weight:600;border-radius:var(--radius-sm);cursor:pointer;border:1px solid var(--border2);background:var(--bg3);color:var(--text3);transition:all 0.15s;}
-.order-type-btn.active-buy{border-color:var(--green);background:var(--green-bg);color:var(--green);}
-.order-type-btn.active-sell{border-color:var(--red);background:var(--red-bg);color:var(--red);}
-.order-actions{display:flex;gap:8px;}
-.order-submit-btn{flex:1;height:38px;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;transition:all 0.15s;}
-.order-submit-btn.buy{background:var(--green);color:#fff;}
-.order-submit-btn.sell{background:var(--red);color:#fff;}
-.order-submit-btn:hover{opacity:0.85;}
-.order-submit-btn:disabled{opacity:0.35;cursor:not-allowed;}
-.order-cancel-btn{height:38px;padding:0 16px;background:var(--bg3);color:var(--text3);border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;transition:all 0.15s;}
-.order-cancel-btn:hover{color:var(--text);}
-.order-disclaimer{font-size:10px;color:var(--text3);margin-top:8px;line-height:1.5;padding:6px 8px;background:rgba(245,166,35,0.07);border-radius:var(--radius-sm);border-left:2px solid var(--amber);}
-.order-result{margin-top:8px;font-size:12px;padding:7px 10px;border-radius:var(--radius-sm);display:none;}
-.order-result.ok{display:block;background:var(--green-bg);color:var(--green);}
-.order-result.err{display:block;background:var(--red-bg);color:var(--red);}
-.order-toggle-btn{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;cursor:pointer;background:var(--blue-bg);border:1px solid rgba(79,142,247,0.3);color:var(--blue);margin-left:6px;transition:all 0.15s;}
-.order-toggle-btn:hover{background:var(--blue);color:#fff;}
-@media(max-width:640px){.order-grid{grid-template-columns:1fr 1fr;}.futu-sync-row{flex-wrap:wrap;}}
 </style>
 </head>
 <body>
 <h1>📊 Ricky 策略掃描報告</h1>
-<div class="meta">生成時間：${dateStr}（美東）｜策略版本：v2.8｜Yahoo Finance 1年數據+手動校準</div>
+<div class="meta">生成時間：${dateStr}（美東）｜策略版本：v2.9a｜Yahoo Finance 1年數據+手動校準</div>
 ${anchorHtml}
 <div class="summary">
   <div class="sum-card" style="border-color:#22c97a"><div class="sum-label">✅ PASS — 可進場觀察</div><div class="sum-value" style="color:#22c97a">${passR.length}</div></div>
@@ -2665,83 +2607,7 @@ ${anchorHtml}
   <tbody>${rowsHtml}</tbody>
 </table>
 </div>
-<div class="footer">僅供技術面參考，不構成投資建議 · 一切決策以策略規則為唯一依據 · Ricky Chan v2.8</div>
-
-<!-- ===== 富途 API Key 設定 Modal ===== -->
-<div class="api-modal-overlay" id="apiModalOverlay" onclick="if(event.target===this)closeApiModal()">
-  <div class="api-modal">
-    <div class="api-modal-header">
-      <div class="api-modal-title">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent)"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
-        富途 OpenAPI 設定
-      </div>
-      <button class="api-modal-close" onclick="closeApiModal()" aria-label="關閉">✕</button>
-    </div>
-
-    <div class="api-modal-desc">
-      📌 此掃描器目前使用 <strong>Yahoo Finance 直連，無需 API Key</strong> 即可正常掃描。<br>
-      如需整合富途牛牛持倉數據或下單功能，請填入 Futu OpenAPI 憑證。<br>
-      <span style="color:var(--amber)">⚠️ 憑證僅存於瀏覽器本地 localStorage，不上傳任何伺服器。</span>
-    </div>
-
-    <div class="api-field">
-      <label>App ID <span class="field-badge">必填</span></label>
-      <input type="text" id="futuAppId" placeholder="牛牛號 / App ID"
-        oninput="this.classList.toggle('has-value', this.value.trim().length > 0); futuTestReset();" />
-      <span class="field-hint">填入富途牛牛賬號（牛牛號）或開發者 App ID</span>
-    </div>
-
-    <div class="api-field">
-      <label>App Secret <span class="field-badge">必填</span></label>
-      <input type="password" id="futuAppSecret" placeholder="富途牛牛登入密碼 / App Secret"
-        oninput="this.classList.toggle('has-value', this.value.trim().length > 0); futuTestReset();" />
-      <span class="field-hint">填入富途牛牛登入密碼（或 App Secret），僅存於本地</span>
-    </div>
-
-    <div class="api-field">
-      <label>OpenD 主機 <span class="field-badge">選填</span></label>
-      <input type="text" id="futuHost" placeholder="預設：127.0.0.1（本機）"
-        oninput="this.classList.toggle('has-value', this.value.trim().length > 0); futuTestReset();" />
-      <span class="field-hint">本機安裝 Futu OpenD 時填 127.0.0.1</span>
-    </div>
-
-    <div class="api-field">
-      <label>OpenD 端口 <span class="field-badge">選填</span></label>
-      <input type="number" id="futuPort" placeholder="預設：11111"
-        oninput="this.classList.toggle('has-value', this.value.trim().length > 0); futuTestReset();" />
-      <span class="field-hint">Futu OpenD 預設端口為 11111</span>
-    </div>
-
-    <div class="api-modal-divider"></div>
-
-    <!-- 測試連線 -->
-    <div class="api-test-section">
-      <div class="test-title">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        測試連線
-      </div>
-      <div class="api-test-row">
-        <button class="api-test-btn" id="futuTestBtn" onclick="testFutuConnection()">
-          <span class="btn-spinner"></span>
-          <span class="btn-icon">🔌</span>
-          測試 API 連線
-        </button>
-        <div class="api-test-result" id="futuTestResult">— 尚未測試</div>
-      </div>
-      <div class="api-test-detail" id="futuTestDetail"></div>
-    </div>
-
-    <div class="api-modal-divider"></div>
-
-    <div class="api-modal-status" id="apiModalStatus"></div>
-
-    <div class="api-modal-actions">
-      <button class="api-modal-clear" onclick="clearFutuApiKeys()">🗑 清除設定</button>
-      <button class="api-modal-save" onclick="saveFutuApiKeys()">💾 儲存設定</button>
-    </div>
-  </div>
-</div>
-
+<div class="footer">僅供技術面參考，不構成投資建議 · 一切決策以策略規則為唯一依據 · Ricky Chan v2.9a</div>
 </body></html>`;
 
   const blob = new Blob([reportHtml], { type: 'text/html;charset=utf-8;' });
@@ -2756,7 +2622,6 @@ function fillSettlement(ticker, price, stop, target, shares) {
   document.getElementById('scEntry').value = price ? price.toFixed(2) : '';
   document.getElementById('scStop').value = stop ? stop.toFixed(2) : '';
   document.getElementById('scExit').value = target ? target.toFixed(2) : '';
-  // E7: 若標的在持倉中，自動帶入持倉股數
   const pos = positions.find(p => p.ticker === ticker);
   document.getElementById('scShares').value = pos ? pos.shares : (shares || '');
   document.getElementById('settlementPanel').classList.add('open');
@@ -2783,7 +2648,6 @@ function saveSettlement() {
 
   try {
     const log = JSON.parse(localStorage.getItem(SETTLEMENT_LOG_KEY) || '[]');
-    // D2: 去重檢查 — 同一標的+日期+進場價視為同一筆交易
     const dupIndex = log.findIndex(r => r.ticker === t && r.date === tradeDate && Math.abs(r.entry - entry) < 0.01);
     if (dupIndex !== -1) {
       if (!confirm(`⚠️ ${t} 在 ${tradeDate} 已有相同進場價 $${entry} 的紀錄\n\n確定覆蓋舊紀錄？`)) {
@@ -2811,7 +2675,6 @@ function saveSettlement() {
     const ym = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
     const ddKey = 'ricky_monthly_dd_v25_' + ym;
     let currentDD = parseFloat(localStorage.getItem(ddKey) || '0');
-    // FIX-3: 以帳戶損益金額/總資金計算回撤貢獻，非個股漲跌幅
     if (pnl < 0) {
       const { cap: _totalCap } = getCapitalParams();
       const ddContrib = _totalCap > 0 ? (Math.abs(pnl) / _totalCap * 100) : 0;
@@ -2829,7 +2692,6 @@ function saveSettlement() {
   document.getElementById('settlementMsg').textContent = `✅ 結算卡已儲存｜${t} 實現損益 $${pnl.toFixed(2)}（${pnlPct.toFixed(2)}%）`;
   document.getElementById('settlementMsg').style.color = 'var(--green)';
 
-  // D1: 儲存後自動清空表單，防止誤觸重複儲存
   document.getElementById('scTicker').value = '';
   document.getElementById('scDate').value = '';
   document.getElementById('scEntry').value = '';
@@ -2838,7 +2700,6 @@ function saveSettlement() {
   document.getElementById('scShares').value = '';
   document.querySelectorAll('.sf-check').forEach(el => el.classList.remove('checked'));
 
-  // E7: 結算後自動從持倉移除
   const posIdx = positions.findIndex(p => p.ticker === t);
   if (posIdx !== -1) {
     positions.splice(posIdx, 1);
@@ -2852,7 +2713,6 @@ function exportSettlementCSV() {
     const log = JSON.parse(localStorage.getItem(SETTLEMENT_LOG_KEY) || '[]');
     if (log.length === 0) { alert('無交易紀錄可導出'); return; }
     const headers = ['日期', '標的', '進場價', '出場價', '止損價', '股數', '損益$', '損益%', '每股風險', '盈虧比', '記錄時間'];
-    // FIX-11: 每欄加雙引號，跳脫欄內引號，防止含逗號欄位破壞 CSV
     const _esc = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
     const rows = log.map(r => [
       r.date, r.ticker, r.entry, r.exit, r.stop || '', r.shares,
@@ -2873,7 +2733,6 @@ function exportSettlementCSV() {
 
 loadAnchorState();
 
-// FIX-12: 啟動時清理3個月前的舊回撤 key，防止 localStorage 無限積累
 (function cleanOldDDKeys() {
   try {
     const now = new Date();
@@ -2887,7 +2746,7 @@ loadAnchorState();
 
 document.addEventListener('DOMContentLoaded', () => {
   loadCapitalParams();
-  loadPositions(); // E7: 初始化持倉
+  loadPositions();
   if (!marketAnchorState) runMarketAnchor();
   try {
     const now = new Date();
@@ -2900,11 +2759,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 // ===================================================================
-// 富途 OpenAPI Key 設定 + 測試連線
+// 富途 OpenAPI Key 設定 + 測試連線  (v2.9a 修正版)
 // ===================================================================
 const FUTU_API_KEY = 'ricky_futu_api_v1';
 
-// --- 持久化 ---
 function getFutuApiConfig() {
   try { return JSON.parse(localStorage.getItem(FUTU_API_KEY) || 'null'); } catch(e) { return null; }
 }
@@ -2960,7 +2818,6 @@ function clearFutuApiKeys() {
   s.textContent = '🗑 設定已清除';
 }
 
-// --- Nav 按鈕狀態 ---
 function updateApiSettingsBtn(configured) {
   const btn = document.getElementById('apiSettingsBtn');
   if (!btn) return;
@@ -2970,7 +2827,6 @@ function updateApiSettingsBtn(configured) {
     : '<span>⚙️</span> 富途 API';
 }
 
-// --- Modal 開關 ---
 function openApiModal() {
   var ov = document.getElementById('apiModalOverlay');
   if (!ov) return;
@@ -2986,7 +2842,6 @@ function closeApiModal() {
   ov.style.display = 'none';
 }
 
-// --- 測試連線 ---
 function futuTestReset() {
   const res = document.getElementById('futuTestResult');
   const det = document.getElementById('futuTestDetail');
@@ -3002,9 +2857,8 @@ async function testFutuConnection() {
   const appId     = (document.getElementById('futuAppId')?.value     || '').trim();
   const appSecret = (document.getElementById('futuAppSecret')?.value || '').trim();
   const host      = (document.getElementById('futuHost')?.value      || '').trim() || '127.0.0.1';
-  const port      = parseInt(document.getElementById('futuPort')?.value || '') || 11111;
+  const proxyPort = 9898;
 
-  // 基本驗證
   if (!appId || !appSecret) {
     result.className = 'api-test-result error';
     result.textContent = '❌ 請先填入 App ID 及 App Secret';
@@ -3013,95 +2867,80 @@ async function testFutuConnection() {
     return;
   }
 
-  // UI: 載入中
   btn.disabled = true;
   btn.classList.add('testing');
   result.className = 'api-test-result testing';
-  result.textContent = '🔄 正在測試連線...';
+  result.textContent = '🔄 正在測試 Proxy 連線...';
   detail.className = 'api-test-detail';
   detail.textContent = '';
 
-  // 測試流程分三層：格式驗證 → OpenD 連通性 → App ID 格式
   const logs = [];
   let passed = 0;
   const startTime = Date.now();
 
-  await new Promise(r => setTimeout(r, 400)); // simulate initial delay
-
-  // --- 層 1：App ID 格式驗證 ---
-  logs.push('[ 1/3 ] App ID 格式驗證...');
+  logs.push('[ 1/3 ] 憑證格式驗證...');
   await new Promise(r => setTimeout(r, 300));
   const appIdOk = appId.length >= 6;
-  if (appIdOk) {
-    logs.push('        ✓ App ID 格式正確');
-    passed++;
-  } else {
-    logs.push('        ✗ App ID 過短（請輸入牛牛號或 App ID，至少 6 位）');
-  }
-
-  // --- 層 2：App Secret 長度驗證 ---
-  logs.push('[ 2/3 ] App Secret 強度驗證...');
-  await new Promise(r => setTimeout(r, 300));
   const secretOk = appSecret.length >= 6;
-  if (secretOk) {
-    logs.push('        ✓ 密碼/App Secret 長度符合要求（≥6 位）');
+  if (appIdOk) { logs.push('        ✓ App ID 格式正確'); passed++; }
+  else logs.push('        ✗ App ID 過短（至少 6 位）');
+  if (secretOk) { logs.push('        ✓ App Secret 長度符合'); passed++; }
+  else logs.push('        ✗ App Secret 過短');
+
+  logs.push(`[ 2/3 ] 本機 Proxy 連通性（${host}:${proxyPort}）...`);
+  await new Promise(r => setTimeout(r, 300));
+  let proxyOk = false;
+  try {
+    const ctrl = new AbortController();
+    setTimeout(() => ctrl.abort(), 3000);
+    await fetch(`http://${host}:${proxyPort}/health`, {
+      method: 'GET',
+      signal: ctrl.signal,
+      mode: 'no-cors'
+    });
+    proxyOk = true;
+    logs.push(`        ✓ Proxy ${host}:${proxyPort} 有回應`);
     passed++;
-  } else {
-    logs.push('        ✗ 密碼/App Secret 過短（至少 6 位）');
+  } catch(e) {
+    if (e.name === 'AbortError') {
+      logs.push(`        ✗ Proxy 連線逾時（3s）— 請確認 futu_proxy.py 已執行`);
+    } else if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError')) {
+      logs.push(`        ✗ 連線被拒絕 — 請確認本機已執行 python futu_proxy.py`);
+    } else {
+      logs.push(`        ✗ 連線異常：${e.message}`);
+    }
   }
 
-  // --- 層 3：OpenD 連通性（透過 fetch 嘗試連接本機端口，僅在 http 環境有效）---
-  logs.push(`[ 3/3 ] OpenD 連通性測試（${host}:${port}）...`);
-  await new Promise(r => setTimeout(r, 300));
-  let connStatus = 'skip';
-  // 僅在本機或明確 http 環境嘗試
-  if (window.location.protocol === 'http:' || host === '127.0.0.1' || host === 'localhost') {
-    try {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 2500);
-      // Futu OpenD 的 HTTP 端口通常比 API 端口多 1（如 11111）
-      const httpPort = port + 1;
-      await fetch(`http://${host}:${httpPort}/`, { method:'GET', signal: ctrl.signal, mode:'no-cors' });
-      clearTimeout(timer);
-      connStatus = 'ok';
-      logs.push(`        ✓ OpenD HTTP 端口 ${host}:${httpPort} 有回應`);
-      passed++;
-    } catch(e) {
-      if (e.name === 'AbortError') {
-        connStatus = 'timeout';
-        logs.push(`        ⚠ 連線逾時（2.5s）— OpenD 可能未啟動，或防火牆攔截`);
-      } else if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError')) {
-        connStatus = 'refused';
-        logs.push(`        ⚠ 連線被拒絕 — 請確認 Futu OpenD 已啟動`);
-      } else {
-        connStatus = 'error';
-        logs.push(`        ⚠ 無法測試：${e.message}`);
-      }
-    }
+  logs.push('[ 3/3 ] 環境與網路檢查...');
+  await new Promise(r => setTimeout(r, 200));
+  const isHttps = window.location.protocol === 'https:';
+  const isLocalhost = host === '127.0.0.1' || host === 'localhost';
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  
+  if (isHttps && isLocalhost) {
+    logs.push(`        ⚠️ 當前頁面為 HTTPS，瀏覽器會封鎖對 http://127.0.0.1 的請求`);
+    logs.push(`          解決方案：將此 HTML 下載到本機，用 http://localhost 開啟`);
+  } else if (isMobile && isLocalhost) {
+    logs.push(`        ⚠️ 手機瀏覽器上 127.0.0.1 指向手機本身，非電腦`);
+    logs.push(`          解決方案：futu_proxy.py 綁定 0.0.0.0，手機填電腦區網 IP`);
   } else {
-    connStatus = 'skip';
-    logs.push(`        ⓘ 非本機環境，跳過連通性測試（CORS 限制）`);
-    logs.push(`          如需測試，請在本機 http:// 環境下開啟此工具`);
+    logs.push(`        ✓ 網路環境檢查完成`);
   }
 
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
   logs.push('');
-  logs.push(`耗時 ${elapsed}s　格式驗證通過 ${passed}/2 項`);
-  if (connStatus !== 'skip') {
-    logs.push(`OpenD 連通性：${connStatus === 'ok' ? '✓ 正常' : '⚠ 異常'}`);
-  }
+  logs.push(`耗時 ${elapsed}s　格式驗證通過 ${passed >= 2 ? 2 : passed}/2 項`);
+  logs.push(`Proxy 連通性：${proxyOk ? '✓ 正常' : '✗ 異常'}`);
 
-  // --- 結果判斷 ---
-  const coreOk = appIdOk && secretOk;
   detail.className = 'api-test-detail show';
   detail.textContent = logs.join('\n');
 
-  if (coreOk && connStatus === 'ok') {
+  if (proxyOk && passed >= 2) {
     result.className = 'api-test-result success';
-    result.textContent = '✅ 憑證格式正確，OpenD 已連線';
-  } else if (coreOk && (connStatus === 'skip' || connStatus === 'timeout' || connStatus === 'refused')) {
+    result.textContent = '✅ Proxy 連線正常，憑證格式正確';
+  } else if (passed >= 2) {
     result.className = 'api-test-result warn';
-    result.textContent = `⚠️ 憑證格式正確${connStatus === 'skip' ? '（OpenD 跳過）' : '，OpenD 未回應'}`;
+    result.textContent = '⚠️ 憑證格式正確，但 Proxy 未回應';
   } else {
     result.className = 'api-test-result error';
     result.textContent = '❌ 憑證格式有誤，請重新確認';
@@ -3111,7 +2950,6 @@ async function testFutuConnection() {
   btn.classList.remove('testing');
 }
 
-// --- 初始化 ---
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeApiModal(); });
 document.addEventListener('DOMContentLoaded', loadFutuApiConfig);
 
@@ -3190,7 +3028,7 @@ async function syncFutuPositions(){
   }catch(e){ok=false;}
   if(!ok){
     st.className='futu-sync-status err';
-    st.innerHTML='⚠️ 無法連接 Proxy（'+host+':9898）<br>'
+    st.innerHTML='⚠️ 無法連接 Proxy（'+host+':9898）<<br>'
       +'<span style="font-size:10px;">請先執行 futu_proxy.py，或點「📋 手動貼入 JSON」</span>';
     const row=document.getElementById('futuManualImportRow');if(row)row.style.display='block';
   }
@@ -3294,7 +3132,7 @@ function downloadFutuProxy(){
   const h=(cfg&&cfg.host)||'127.0.0.1', p=(cfg&&cfg.port)||11111;
   const code=[
     '#!/usr/bin/env python3',
-    '# futu_proxy.py -- Ricky Scanner v2.9',
+    '# futu_proxy.py -- Ricky Scanner v2.9a',
     '# pip install futu-api flask flask-cors',
     '# python futu_proxy.py',
     '',
@@ -3310,6 +3148,16 @@ function downloadFutuProxy(){
     '',
     'app = Flask(__name__)',
     'CORS(app)',
+    '',
+    '@app.route("/health")',
+    'def health():',
+    '    return jsonify({',
+    '        "status": "ok",',
+    '        "opend_host": OPEND_HOST,',
+    '        "opend_port": OPEND_PORT,',
+    '        "proxy_port": 9898,',
+    '        "note": "Futu Proxy is running. OpenD connection will be tested on first API call."',
+    '    })',
     '',
     '@app.route("/positions")',
     'def get_positions():',
@@ -3344,10 +3192,9 @@ function downloadFutuProxy(){
     '    except Exception as e: return jsonify({"error": str(e)}), 500',
     '',
     'if __name__ == "__main__":',
-    '    print("Futu Proxy running at http://127.0.0.1:9898")',
-    '    app.run(host="127.0.0.1", port=9898)',
+    '    print("Futu Proxy running at http://0.0.0.0:9898")',
+    '    app.run(host="0.0.0.0", port=9898)',
   ].join('\n');
-  // Mobile-compatible: try blob download first, fallback to data URI new tab
   try {
     const blob = new Blob([code], {type:'text/plain;charset=utf-8'});
     const url = URL.createObjectURL(blob);
@@ -3357,7 +3204,6 @@ function downloadFutuProxy(){
     document.body.appendChild(a); a.click();
     setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
   } catch(e) {
-    // Fallback: open as data URI in new tab (iOS Safari compatible)
     const uri = 'data:text/plain;charset=utf-8,' + encodeURIComponent(code);
     window.open(uri, '_blank');
   }
