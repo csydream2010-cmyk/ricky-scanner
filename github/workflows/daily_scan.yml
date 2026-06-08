@@ -8,7 +8,7 @@ jobs:
   run-scanner:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: writ e
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
