@@ -1,7 +1,3 @@
-"""
-美股市場雷達 V2.0 Ultimate - Pydroid 3 手機旗艦版 (財報修正版)
-"""
-
 import pandas as pd
 import numpy as np
 import time, json, os, schedule, random, warnings, requests
