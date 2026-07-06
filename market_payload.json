@@ -1,6 +1,6 @@
 {
   "scan_metadata": {
-    "scan_time": "2026-07-05 01:57:03",
+    "scan_time": "2026-07-06 02:03:44",
     "vix": 15.81
   },
   "sector_etfs": [
@@ -612,7 +612,7 @@
       "size_pct": 0.3794,
       "sector": "通訊",
       "earnings_date": null,
-      "rs_rank": 11.4,
+      "rs_rank": 13.6,
       "ticker": "META"
     },
     {
@@ -767,7 +767,7 @@
       "size_pct": 0.6047,
       "sector": "非必需消費",
       "earnings_date": null,
-      "rs_rank": 25.0,
+      "rs_rank": 27.3,
       "ticker": "HD"
     },
     {
@@ -829,7 +829,7 @@
       "size_pct": 0.7682,
       "sector": "必需消費",
       "earnings_date": null,
-      "rs_rank": 15.9,
+      "rs_rank": 18.2,
       "ticker": "PG"
     },
     {
@@ -953,7 +953,7 @@
       "size_pct": 0.6597,
       "sector": "能源",
       "earnings_date": null,
-      "rs_rank": 18.2,
+      "rs_rank": 20.5,
       "ticker": "XOM"
     },
     {
@@ -984,7 +984,7 @@
       "size_pct": 0.6556,
       "sector": "能源",
       "earnings_date": null,
-      "rs_rank": 13.6,
+      "rs_rank": 15.9,
       "ticker": "CVX"
     },
     {
@@ -1365,29 +1365,29 @@
       "high": 230.13,
       "low": 220.22,
       "volume": 5659100,
-      "avg_volume_20": 6248955,
-      "ma5": 227.1,
-      "ma20": 223.18,
-      "ma50": 221.14,
-      "ma200": 214.57,
-      "ema200": 220.16,
-      "macd_hist": 0.062,
-      "rsi_14": 61.5,
+      "avg_volume_20": 6018084,
+      "ma5": 229.37,
+      "ma20": 231.86,
+      "ma50": 231.05,
+      "ma200": 224.82,
+      "ema200": 230.47,
+      "macd_hist": -1.278,
+      "rsi_14": 50.05,
       "squeeze": false,
-      "atr_14": 8.92,
-      "w52_high": 252.0,
-      "w52_low": 186.76,
+      "atr_14": 9.16,
+      "w52_high": 260.28,
+      "w52_low": 195.87,
       "pe": null,
       "entry": 229.86,
-      "stop": 212.02,
-      "target": 265.54,
-      "ret_90d": -5.64,
-      "ret_5d": -1.01,
-      "ret_ytd": 1.45,
-      "size_pct": 0.3865,
+      "stop": 211.53,
+      "target": 266.52,
+      "ret_90d": -10.03,
+      "ret_5d": -5.61,
+      "ret_ytd": -3.27,
+      "size_pct": 0.3762,
       "sector": "工業",
       "earnings_date": null,
-      "rs_rank": 27.3,
+      "rs_rank": 11.4,
       "ticker": "HON"
     },
     {
@@ -1511,7 +1511,7 @@
       "size_pct": 0.6328,
       "sector": "原物料",
       "earnings_date": null,
-      "rs_rank": 20.5,
+      "rs_rank": 22.7,
       "ticker": "ECL"
     },
     {
@@ -1635,7 +1635,7 @@
       "size_pct": 0.8,
       "sector": "公用事業",
       "earnings_date": null,
-      "rs_rank": 22.7,
+      "rs_rank": 25.0,
       "ticker": "NEE"
     },
     {
